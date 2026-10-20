@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+appsettings.local.json
+connection.local.json
+**/*.local.json
+repairdesk-*.sql
+*.log
+TestResults/
+publish/
+artifacts/
