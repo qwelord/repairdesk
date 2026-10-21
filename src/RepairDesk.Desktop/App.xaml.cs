@@ -44,6 +44,7 @@ public partial class App : Application
         {
             var settings = PortableSettings ?? DatabaseSettings.Load();
             await new Repository(settings).TestConnectionAsync();
+            await Provisioning.EnsureCatalogAsync(settings, Path.Combine(AppContext.BaseDirectory, "database"));
             api = ApiHost.Create(settings, Path.Combine(AppContext.BaseDirectory, "wwwroot"));
             await api.StartAsync();
         }

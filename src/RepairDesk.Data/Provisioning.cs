@@ -5,12 +5,21 @@ namespace RepairDesk.Data;
 
 public static class Provisioning
 {
+    public static async Task EnsureCatalogAsync(DatabaseSettings settings, string sqlDirectory)
+    {
+        await using var connection = new MySqlConnection(settings.ConnectionString);
+        await connection.OpenAsync();
+        var sql = await File.ReadAllTextAsync(Path.Combine(sqlDirectory, "catalog.sql"));
+        await using var command = new MySqlCommand(sql, connection) { CommandTimeout = 60 };
+        await command.ExecuteNonQueryAsync();
+    }
+
     public static async Task InitializeAsync(DatabaseSettings settings, string sqlDirectory)
     {
         if (settings.Database != "repairdesk")
             throw new BusinessException("Скрипты создают базу repairdesk. Укажите это имя в настройках.");
         var scripts = new List<string>();
-        foreach (var filename in new[] { "schema.sql", "demo.sql", "benchmarks.sql" })
+        foreach (var filename in new[] { "schema.sql", "demo.sql", "benchmarks.sql", "catalog.sql" })
         {
             var path = Path.Combine(sqlDirectory, filename);
             if (!File.Exists(path))
