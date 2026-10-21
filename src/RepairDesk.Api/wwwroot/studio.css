@@ -543,9 +543,18 @@ tbody tr.clickable:hover {
     border: 1px solid #e6e9e0;
     border-radius: 9px;
 }
-.device-thumb svg {
-    width: 37px;
-    height: 37px;
+.hardware-photo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+.photo-storage {
+    object-position: 50% 67%;
+}
+.device-thumb .hardware-photo {
+    border-radius: inherit;
 }
 .primary-text {
     font-size: 12px;
@@ -643,7 +652,7 @@ tbody tr.clickable:hover {
 }
 .login-art .hardware-stage {
     height: 340px;
-    margin-top: 0;
+    margin-top: 24px;
 }
 .login-foot {
     font-size: 9px;
@@ -788,9 +797,8 @@ tbody tr.clickable:hover {
     border-radius: 18px;
     flex: none;
 }
-.detail-hero .device-thumb svg {
-    width: 80px;
-    height: 80px;
+.detail-hero .device-thumb .hardware-photo {
+    border-radius: inherit;
 }
 .detail-hero h1 {
     font-size: 30px;
@@ -981,18 +989,27 @@ tbody tr.clickable:hover {
     display: grid;
     place-items: center;
     border-bottom: 1px solid var(--line);
+    overflow: hidden;
 }
-.product-visual svg {
-    width: 78%;
-    height: 150px;
-    filter: grayscale(0.8) drop-shadow(0 13px 10px #353d3022);
+.product-visual .hardware-photo {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+.product-visual .photo-gpu {
+    object-fit: contain;
+    transform: rotate(-90deg) scale(1.8);
 }
 .product-visual .eyebrow {
     position: absolute;
     top: 17px;
     left: 19px;
     font-size: 9px;
-    color: #a0a88f;
+    color: #fff;
+    background: #252827c9;
+    border-radius: 5px;
+    padding: 6px 9px;
+    z-index: 1;
 }
 .product-body {
     padding: 20px;
@@ -1080,16 +1097,21 @@ tbody tr.clickable:hover {
     font-weight: 400;
     line-height: 1.12;
 }
+.build-showcase .hardware-stage {
+    margin-top: 24px;
+}
 .hardware-stage {
     height: 295px;
     display: grid;
     place-items: center;
     position: relative;
+    overflow: hidden;
+    border-radius: 12px;
 }
-.hardware-stage svg {
+.hardware-stage .hardware-photo {
     width: 100%;
     height: 100%;
-    filter: grayscale(0.8) drop-shadow(0 22px 17px #53624130);
+    object-position: 60% center;
 }
 .stage-caption {
     display: flex;
@@ -1124,9 +1146,8 @@ tbody tr.clickable:hover {
     display: grid;
     place-items: center;
 }
-.component-figure svg {
-    width: 31px;
-    height: 31px;
+.component-figure .hardware-photo {
+    border-radius: inherit;
 }
 .component label {
     font-size: 9px;
@@ -1717,10 +1738,6 @@ dialog::backdrop {
         width: 65px;
         height: 65px;
     }
-    .detail-hero .device-thumb svg {
-        width: 52px;
-        height: 52px;
-    }
     .editorial-note {
         padding: 22px;
     }
@@ -1738,9 +1755,6 @@ dialog::backdrop {
     }
     .product-visual {
         height: 140px;
-    }
-    .product-visual svg {
-        height: 110px;
     }
     .product-body {
         padding: 15px;
@@ -1765,6 +1779,28 @@ dialog::backdrop {
     }
     .fps-bar {
         width: 85px;
+    }
+}
+@media (max-width: 560px) {
+    .catalog-grid,
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .page-actions {
+        width: 100%;
+    }
+    .editorial-note {
+        grid-template-columns: 1fr;
+    }
+    .editorial-index {
+        display: none;
+    }
+    .build-summary {
+        flex-wrap: wrap;
     }
 }
 @media (prefers-reduced-motion: reduce) {

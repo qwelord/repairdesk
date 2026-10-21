@@ -32,7 +32,7 @@ routes.catalog = () => {
             "Характеристики, совместимость и наличие. Каталог, с которым удобно работать.",
             `${button("Движения", "stock-history", "", "clock")}${state.user.canManage ? button("Комплектующая", "new-part", "primary", "plus") : ""}`,
         ) +
-            `<div class="toolbar"><div class="category-strip">${["Все", ...categories].map((category) => `<button class="tab ${state.category === category ? "active" : ""}" data-action="category" data-category="${category}">${category}</button>`).join("")}</div><input id="part-search" class="filter-input" type="search" aria-label="Поиск комплектующих" placeholder="Поиск по названию…" value="${esc(state.search)}"></div><div id="catalog-results"></div><p class="footer-note">Цены учебного каталога не являются актуальными рыночными ценами. Источник характеристик указан в карточке.</p>`,
+            `<div class="toolbar"><div class="category-strip">${["Все", ...categories].map((category) => `<button class="tab ${state.category === category ? "active" : ""}" data-action="category" data-category="${category}">${category}</button>`).join("")}</div><input id="part-search" class="filter-input" type="search" aria-label="Поиск комплектующих" placeholder="Поиск по названию…" value="${esc(state.search)}"></div><p class="help">Фотографии представляют категории оборудования. Модель и производитель на фото могут отличаться; точные характеристики указаны в карточке.</p><div id="catalog-results"></div><p class="footer-note">Цены учебного каталога не являются актуальными рыночными ценами. Источник характеристик указан в карточке.</p>`,
     );
     $("#part-search").addEventListener("input", () => {
         state.search = $("#part-search").value;

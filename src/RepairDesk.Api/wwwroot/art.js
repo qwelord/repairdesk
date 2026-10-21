@@ -24,31 +24,27 @@ const paths = {
     clock: "M12 6v6l4 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0",
     external: "M14 3h7v7m-9 2 9-9M10 3H3v18h18v-7",
 };
+
 export function icon(name) {
     return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.build}"/></svg>`;
 }
-let sequence = 0;
+
+const photographs = {
+    ПК: ["desktop", "Собранный настольный компьютер"],
+    Корпус: ["desktop", "Корпус собранного компьютера"],
+    Процессор: ["cpu", "Процессор в сокете материнской платы"],
+    "Материнская плата": [
+        "motherboard",
+        "Компоненты материнской платы крупным планом",
+    ],
+    Видеокарта: ["gpu", "Видеокарта с воздушным охлаждением"],
+    Память: ["memory", "Модули оперативной памяти"],
+    Накопитель: ["storage", "Твердотельный накопитель M.2"],
+    "Блок питания": ["psu", "Компьютерный блок питания"],
+    Ноутбук: ["laptop", "Открытый ноутбук"],
+};
+
 export function hardware(category = "ПК", large = false) {
-    const id = `metal-${++sequence}`;
-    const defs = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e0e5d9"/><stop offset=".3" stop-color="#8b9681"/><stop offset=".55" stop-color="#c1cbb5"/><stop offset="1" stop-color="#596750"/></linearGradient><linearGradient id="${id}-dark" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#56604d"/><stop offset="1" stop-color="#202a1b"/></linearGradient></defs>`;
-    const fan = (cx, cy, r) =>
-        `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#2e3928" stroke="#849373" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="${r * 0.81}" fill="none" stroke="#47543a" stroke-width="3"/>${Array.from({ length: 9 }, (_, index) => `<path d="M${cx} ${cy - r * 0.14}q${r * 0.8} ${-r * 0.7} ${r * 0.48} ${r * 0.25}q${-r * 0.2} ${r * 0.2} ${-r * 0.48} ${-r * 0.25}" fill="#71805f" transform="rotate(${index * 40} ${cx} ${cy})"/>`).join("")}<circle cx="${cx}" cy="${cy}" r="${r * 0.17}" fill="#a5b293"/>`;
-    let shape = "";
-    if (category === "Видеокарта")
-        shape = `<g transform="translate(12 47) rotate(-8 140 65)"><path d="m0 13 260-9 12 101-261 14z" fill="url(#${id})" stroke="#6c795e"/><path d="m7 20 246-9 10 85-247 14z" fill="url(#${id}-dark)"/>${fan(77, 63, 42)}${fan(192, 59, 42)}<path d="m13 121 15 1v12h210v-18" fill="#a6b68c"/><path d="M269 9v111h12" stroke="#bac5ac" stroke-width="6"/><path d="M45 127h24m8 0h24m8 0h24m8 0h24" stroke="#d5bb77" stroke-width="6"/></g>`;
-    else if (category === "Процессор")
-        shape = `<g transform="translate(75 30) rotate(-12 75 75)"><rect x="0" y="0" width="150" height="150" rx="7" fill="#536345"/><rect x="10" y="10" width="130" height="130" rx="3" fill="url(#${id})" stroke="#cdd4c4" stroke-width="3"/><path d="M23 23h104v104H23z" fill="#aeba9e" stroke="#8e9b7d"/><text x="75" y="69" fill="#526347" font-size="15" font-family="sans-serif" text-anchor="middle">PROCESSOR</text><text x="75" y="93" fill="#647456" font-size="8" font-family="sans-serif" text-anchor="middle">DESKTOP SERIES</text>${Array.from({ length: 10 }, (_, index) => `<path d="M${15 + index * 13} 4v7m0 128v7M4 ${15 + index * 13}h7m128 0h7" stroke="#d0bd7d" stroke-width="3"/>`).join("")}</g>`;
-    else if (category === "Материнская плата")
-        shape = `<g transform="translate(62 12) rotate(-8 90 90)"><rect width="180" height="185" rx="4" fill="#3b4931" stroke="#657354" stroke-width="3"/><rect x="57" y="32" width="62" height="62" fill="#899779" stroke="#bdc7af" stroke-width="3"/><rect x="68" y="43" width="40" height="40" fill="#4d5c41"/>${Array.from({ length: 4 }, (_, index) => `<rect x="${130 + index * 10}" y="18" width="5" height="95" rx="2" fill="#a2ad96"/>`).join("")}<path d="M20 116h138v7H20zm0 22h126v7H20zm0 22h126v7H20z" fill="#8e9b7d"/><path d="M14 10h30v82H14z" fill="url(#${id})"/><path d="m61 102 45 0 13 11H61z" fill="#c2cbb8"/><circle cx="150" cy="167" r="9" fill="#bec8b2"/><path d="M8 7h164v169" fill="none" stroke="#7f9267" stroke-dasharray="5 5"/></g>`;
-    else if (category === "Память")
-        shape = `<g transform="translate(28 65) rotate(-12 120 45)"><rect width="245" height="76" rx="4" fill="#34472a"/><path d="M0 5h245v58H0z" fill="url(#${id}-dark)"/>${Array.from({ length: 7 }, (_, index) => `<rect x="${12 + index * 33}" y="13" width="25" height="40" rx="2" fill="#5a6b4c"/>`).join("")}<path d="M12 72h218" stroke="#cab674" stroke-width="10" stroke-dasharray="3 2"/><text x="122" y="40" fill="#c3cdb6" font-size="11" font-family="sans-serif" text-anchor="middle">FURY • PERFORMANCE MEMORY</text></g>`;
-    else if (category === "Накопитель")
-        shape = `<g transform="translate(34 65) rotate(-15 120 40)"><rect width="240" height="75" rx="6" fill="#394d30" stroke="#8a9b75"/><rect x="25" y="9" width="175" height="56" rx="2" fill="url(#${id})"/><text x="110" y="33" fill="#45593a" font-size="14" font-family="sans-serif" text-anchor="middle">SOLID STATE</text><text x="110" y="51" fill="#5c6c50" font-size="9" font-family="sans-serif" text-anchor="middle">HIGH PERFORMANCE STORAGE</text><path d="M235 10v55" stroke="#c3ab67" stroke-width="10" stroke-dasharray="3 2"/><circle cx="9" cy="37" r="4" fill="#c8d1bb"/></g>`;
-    else if (category === "Блок питания")
-        shape = `<g transform="translate(48 20)"><path d="m0 20 140-20 65 40-140 23z" fill="url(#${id})"/><path d="M0 20v120l65 40V63z" fill="#606e53"/><path d="m65 63 140-23v120l-140 20z" fill="url(#${id}-dark)"/>${fan(135, 110, 45)}<path d="m14 50 35 20v60l-35-20z" fill="#2c3b23"/><path d="m12 36 35 20m-35 5 35 20m-35 5 35 20" stroke="#98a887" stroke-width="3"/></g>`;
-    else if (category === "Ноутбук")
-        shape = `<g transform="translate(28 22)"><path d="M27 4h188v124H27z" fill="url(#${id})" stroke="#60714f" stroke-width="3"/><path d="M35 12h172v105H35z" fill="#283520"/><path d="m39 113 163-97v97z" fill="#35472a"/><path d="M27 128 0 157q122 18 242 0l-27-29z" fill="url(#${id})" stroke="#7a8b68"/><path d="M41 133h160l9 15H31z" fill="#56674a"/><path d="M93 151h60v7H93" fill="#b3bfa4"/></g>`;
-    else
-        shape = `<g transform="translate(${large ? 75 : 87} 7)"><path d="m0 18 93-18 71 29-92 21z" fill="url(#${id})"/><path d="M0 18v158l72 29V50z" fill="#849175"/><path d="m72 50 92-21v158l-92 18z" fill="url(#${id}-dark)" stroke="#7d8d6b"/><path d="m81 59 73-17v135l-73 17z" fill="#343f2b"/><path d="m8 29 55 23v135L8 164z" fill="#4e5e40" opacity=".8"/><path d="M16 44v112l40 18V61z" fill="#778967" opacity=".6"/>${fan(116, 82, 25)}${fan(116, 139, 25)}<path d="m87 181 57-14" stroke="#a3b68d" stroke-width="2"/><path d="M7 178v10m147-1v10" stroke="#5a694c" stroke-width="8"/><circle cx="112" cy="20" r="2" fill="#ebf1e3"/><path d="m23 28 29 11" stroke="#b4c0a5" stroke-width="2"/></g>`;
-    return `<svg viewBox="0 0 310 220" fill="none" aria-hidden="true">${defs}${shape}</svg>`;
+    const [file, description] = photographs[category] || photographs["ПК"];
+    return `<img class="hardware-photo photo-${file}" src="/assets/photos/${file}.jpg" alt="${description}" title="Фотография категории. Конкретная модель может отличаться." width="1200" height="800" loading="${large ? "eager" : "lazy"}" decoding="async">`;
 }

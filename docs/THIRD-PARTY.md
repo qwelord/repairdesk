@@ -13,7 +13,9 @@
 | Microsoft.Web.WebView2 SDK | 1.0.4258.31 | Условия Microsoft, https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4258.31 |
 | Onest | Вариативный TTF из Google Fonts | SIL Open Font License 1.1; текст в wwwroot/assets/OFL.txt; https://github.com/google/fonts/tree/main/ofl/onest |
 
-В комплект включён SDK/loader WebView2, но не установленный на этом ПК Evergreen Runtime. Приложение использует существующий runtime или открывает браузер; официальный Fixed Version Runtime можно добавить отдельным параметром публикации. Условия распространения WebView2 необходимо соблюдать отдельно. Графика оборудования — собственные условные SVG-иллюстрации, не фотографии конкретных моделей.
+В комплект включён SDK/loader WebView2, но не установленный на этом ПК Evergreen Runtime. Приложение использует существующий runtime или открывает браузер; официальный Fixed Version Runtime можно добавить отдельным параметром публикации. Условия распространения WebView2 необходимо соблюдать отдельно.
+
+Фотографии оборудования получены с Unsplash и включены локально по Unsplash License. Источники и оговорки перечислены в `PHOTOS.md`. Навигационные значки остаются собственными SVG; фотографии категорий не выдают себя за снимки конкретных товаров каталога.
 
 Официальный дистрибутив и контрольные суммы MariaDB: https://dlm.mariadb.com/browse/mariadb_server/11.8.9/winx64-packages/
 
