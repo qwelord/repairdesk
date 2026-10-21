@@ -2,6 +2,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using RepairDesk.Data;
+using RepairDesk.Api;
+using Microsoft.AspNetCore.Builder;
 
 namespace RepairDesk.Desktop;
 
@@ -9,6 +11,7 @@ public partial class App : Application
 {
     private Mutex? instance;
     private PortableServer? portableServer;
+    private WebApplication? api;
     internal static DatabaseSettings? PortableSettings
     {
         get; private set;
@@ -17,7 +20,7 @@ public partial class App : Application
     {
         base.OnStartup(args);
         DispatcherUnhandledException += OnUnhandled;
-        instance = new Mutex(true, "Local\\RepairDesk.Desktop", out var first);
+        instance = new Mutex(true, "Local\\RepairDesk.Studio", out var first);
         if (!first)
         {
             MessageBox.Show("RepairDesk уже запущен. Откройте его окно на панели задач.", "RepairDesk");
@@ -31,20 +34,35 @@ public partial class App : Application
             loading.Show();
             try
             {
-                portableServer = new PortableServer();
+                portableServer = new PortableServer(stateFolder: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RepairDesk", "studio"));
                 PortableSettings = await portableServer.StartAsync();
             }
             catch (Exception error) { Diagnostics.Write(error); MessageBox.Show(error is RepairDesk.Core.BusinessException ? error.Message : "Не удалось подготовить локальную базу. Подробности сохранены в журнале RepairDesk.", "RepairDesk", MessageBoxButton.OK, MessageBoxImage.Error); loading.Close(); Shutdown(1); return; }
             loading.Close();
         }
+        try
+        {
+            var settings = PortableSettings ?? DatabaseSettings.Load();
+            await new Repository(settings).TestConnectionAsync();
+            api = ApiHost.Create(settings, Path.Combine(AppContext.BaseDirectory, "wwwroot"));
+            await api.StartAsync();
+        }
+        catch (Exception error)
+        {
+            Diagnostics.Write(error);
+            MessageBox.Show("Не удалось запустить локальный API. Используйте полный переносной комплект или проверьте connection.local.json. Подробности в журнале RepairDesk.", "RepairDesk Studio");
+            Shutdown(1);
+            return;
+        }
         ShutdownMode = ShutdownMode.OnMainWindowClose;
-        var window = new MainWindow();
+        var window = new MainWindow(new Uri(api.Urls.Single()));
         MainWindow = window;
         window.Show();
     }
 
     protected override void OnExit(ExitEventArgs args)
     {
+        if (api != null) api.StopAsync().GetAwaiter().GetResult();
         portableServer?.Stop();
         instance?.Dispose();
         base.OnExit(args);

@@ -6,6 +6,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../RepairDesk.Data/RepairDesk.Data.csproj" />
+    <ProjectReference Include="../RepairDesk.Api/RepairDesk.Api.csproj" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Compile Remove="OrdersPage.cs;StockPage.cs;ConfiguratorPage.cs;Ui.cs;Exports.cs" />
     <Content Include="../../database/*.sql" Link="database/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../RepairDesk.Api/wwwroot/**/*" Link="wwwroot/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
