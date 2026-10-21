@@ -1,21 +1,309 @@
-import{state,$,$$,icon,hardware,esc,api,refreshData,navigate,mount,modal,toast,button,header,field,select,area,actions,routes,money,date,empty,categories,selectedIds,clientOptions,confirmAction}from'./core.js';
-let evaluation,comparison;
-function resolution(){return `<div class="resolution-switch" aria-label="Разрешение">${[[1920,'1080p'],[2560,'1440p'],[3840,'4K']].map(([width,label])=>`<button class="${state.width===width?'active':''}" data-action="resolution" data-width="${width}">${label}</button>`).join('')}</div>`}
-routes.build=async()=>{mount(header('Hardware atelier / студия сборки','Производительность — в балансе.','Подбирайте осмысленно. Совместимость, бюджет и игровые ориентиры в одном пространстве.',`${button('Подобрать под бюджет','budget','','search')}${button('Сохранить','save-build','primary','saved')}`)+`<div class="build-layout"><div><div class="build-showcase"><div class="eyebrow">Индивидуальная конфигурация / desktop</div><h2>Система.<br>Продуманная до детали.</h2><div class="hardware-stage">${hardware('ПК',true)}</div><div class="stage-caption"><span>ILLUSTRATED HARDWARE / НЕ ФОТО ВЫБРАННОГО КОРПУСА</span><span>RD — 02</span></div></div><div class="build-summary"><div><small>Комплектующие / без работы по сборке</small><div id="build-price" class="price-total">${money(0)}</div></div>${button('Оформить заказ','build-order','small','arrow')}</div></div><div class="component-list">${categories.map(category=>`<div class="component"><div class="component-figure">${hardware(category)}</div><div><label for="component-${categories.indexOf(category)}">${category}</label><select id="component-${categories.indexOf(category)}" data-category="${category}"><option value="">Выберите комплектующую</option>${state.parts.filter(part=>part.category===category).map(part=>`<option value="${part.id}"${state.buildIds.includes(part.id)?' selected':''}>${esc(part.name)} · ${money(part.price)}${part.stock===0?' / под заказ':''}</option>`).join('')}</select></div></div>`).join('')}</div></div><div class="section-heading"><div><h2>Инженерная проверка</h2><p>Сокет, память, габариты, питание и наличие.</p></div>${button('Сравнить с текущим ПК','compare-build','small','compare')}</div><div id="compatibility" class="findings"></div><div class="section-heading"><div><h2>Игры. Без выдуманных цифр.</h2><p>Опубликованные замеры и отдельно помеченные расчёты.</p></div>${resolution()}</div><div id="performance"></div><div class="footer-note"><span>Проверка не заменяет руководство платы, QVL и проверку BIOS. Учитывайте кулер и дополнительные вентиляторы.</span></div>`);$$('.component select').forEach(control=>control.addEventListener('change',async()=>{state.buildIds=selectedIds();await evaluate()}));await evaluate()};
-async function evaluate(){const ids=[...state.buildIds];evaluation=await api('/builds/evaluate','POST',{partIds:ids,width:state.width});if(state.route!=='build'||ids.join()!==state.buildIds.join())return;$('#build-price').textContent=money(evaluation.build.price);$('#compatibility').innerHTML=evaluation.compatibility.findings.map(finding=>`<div class="finding ${finding.level==='Error'?'error-finding':''}"><span class="finding-symbol">${finding.level==='Pass'?'✓':finding.level==='Error'?'!':'·'}</span><div><strong>${esc(finding.title)}</strong><p>${esc(finding.detail)}</p></div></div>`).join('');$('#performance').innerHTML=performance(evaluation.performance)+`<p class="help">${esc(evaluation.notice)}</p>`}
-function performance(items){return `<div class="fps-table"><div class="table-wrap"><table><thead><tr><th>Игра</th><th>Средний FPS / ориентир</th><th>Настройки теста</th><th>Данные</th></tr></thead><tbody>${items.map((item,index)=>`<tr><td><div class="primary-text">${esc(item.game)}</div><div class="fps-kind">${esc(item.kind)}</div></td><td>${item.fps?`<span class="fps-value">${item.kind==='Замер из источника'?item.fps:item.lower+'–'+item.upper}</span><small class="muted"> fps</small><svg width="120" height="6" viewBox="0 0 120 6" aria-hidden="true"><rect width="120" height="4" rx="2" fill="#e7ebdf"/><rect width="${Math.min(120,Number(item.fps)/240*120)}" height="4" rx="2" fill="#91a27c"/></svg>`:'<span class="muted">Не публикуем без основания</span>'}</td><td><div class="secondary-text">${esc(item.preset)||'—'}</div></td><td><button class="source-button" data-action="fps-source" data-index="${index}">Методика и источник ↗</button></td></tr>`).join('')}</tbody></table></div></div>`}
-actions.resolution=async target=>{state.width=Number(target.dataset.width);if(state.route==='build')await routes.build();else if(state.route==='compare')await routes.compare()};
-actions['fps-source']=target=>{const item=evaluation.performance[Number(target.dataset.index)];modal(esc(item.game),`<span class="badge">${esc(item.kind)}</span><p class="caption">${esc(item.explanation)}</p>${item.sources.map(source=>`<article class="source-item"><a href="${esc(source.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(source.sourceTitle)} ↗</a><p>${esc(source.gpu)} · ${source.width} × ${source.height}<br>${esc(source.preset)} · ${source.averageFps} FPS<br>RT: ${esc(source.rayTracing)} · масштабирование: ${esc(source.upscaling)}<br>Стенд: ${esc(source.testCpu)}<br>Дата теста: ${new Date(source.testDate).toLocaleDateString('ru-RU')}<br>${esc(source.notes)}</p></article>`).join('')}<p class="help">Это исторические тесты опубликованных версий игр. Для будущих и неподтверждённых игр числа не генерируются. Пресеты разных игр не равнозначны.</p>`)};
-actions['save-build']=()=>{if(!evaluation?.compatibility.isComplete||evaluation.compatibility.hasErrors){toast('Завершите конфигурацию и устраните несовместимости.',true);return}modal('Сохранить конфигурацию',`<div class="stack">${field('Название сборки','name','Индивидуальная сборка','text','required maxlength="150"')}${select('Клиент','clientId',[['','Без клиента'],...clientOptions()])}</div>`,async data=>{await api('/builds','POST',{partIds:state.buildIds,name:data.name,clientId:Number(data.clientId)||null});toast('Конфигурация сохранена.')})};
-actions['build-order']=()=>{if(!state.user.canReceive){toast('Оформление доступно приемщику и администратору.',true);return}if(!evaluation?.compatibility.isComplete||evaluation.compatibility.hasErrors){toast('Сначала завершите подбор совместимых компонентов.',true);return}modal('Сборка для клиента',`<p class="caption">Комплектующие будут выделены со склада. Работа по сборке добавится к стоимости автоматически.</p><div class="stack">${select('Клиент','clientId',clientOptions())}${field('Название устройства','name','Индивидуальная сборка ПК','text','required maxlength="150"')}</div>`,async data=>{const result=await api('/builds/order','POST',{partIds:state.buildIds,name:data.name,clientId:Number(data.clientId)});await refreshData();await navigate('order',result.id);toast('Сборка оформлена. Комплектующие выделены со склада.')},{submit:'Оформить заказ'})};
-actions.budget=()=>navigate('budget');
-routes.budget=()=>{mount(header('Индивидуальный подбор','Бюджет задан. Решение найдётся.','Полные совместимые сборки из каталога — с учётом стоимости работы.',button('Ручной подбор','manual-build','','build'))+`<section class="panel"><form id="budget-form" class="budget-panel"><div class="form-grid">${field('Бюджет вместе со сборкой, ₽','budget',100000,'number','required min="10000" max="1000000" step="1000"')}${select('Разрешение для приоритета GPU','width',[[1920,'1920 × 1080'],[2560,'2560 × 1440'],[3840,'3840 × 2160']],state.width)}${select('Наличие','inStockOnly',[['true','Только на складе'],['false','Можно под заказ']])}</div><button class="button primary" type="submit">Подобрать варианты ${icon('arrow')}</button></form></section><div id="budget-results"><section class="editorial-note"><div><h3>Больше смысла в каждом компоненте.</h3><p>Алгоритм перебирает платформы, проверяет совместимость и питание, выбирает память от 16 ГБ и накопитель от 500 ГБ. Вы не платите за случайный набор дорогих деталей.</p></div><div class="editorial-index">₽</div></section></div>`);$('#budget-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=$('button',form);submit.disabled=true;try{const data=Object.fromEntries(new FormData(form));const result=await api('/builds/recommend','POST',{budget:Number(data.budget),width:Number(data.width),inStockOnly:data.inStockOnly==='true'});state.width=Number(data.width);$('#budget-results').innerHTML=`<p class="caption">${esc(result.message)}</p><div class="budget-proposals">${result.proposals.map((proposal,index)=>`<article class="proposal"><div class="eyebrow">Вариант ${String(index+1).padStart(2,'0')}</div><h3>${proposal.name}</h3><ul>${proposal.build.parts.map(part=>`<li>${esc(part.name)}</li>`).join('')}<li>Сборка и проверка · ${money(result.labor)}</li></ul><div class="price-total">${money(proposal.total)}</div><small class="muted">В бюджете осталось ${money(proposal.remaining)}</small><p class="help">${esc(proposal.reason)}</p><button class="button primary" data-action="choose-proposal" data-index="${index}">Открыть конфигурацию ${icon('arrow')}</button></article>`).join('')}</div>`;state.proposals=result.proposals}catch(error){toast(error.message,true)}finally{submit.disabled=false}})};
-actions['manual-build']=()=>navigate('build');
-actions['choose-proposal']=target=>{state.buildIds=state.proposals[Number(target.dataset.index)].build.parts.map(part=>part.id);navigate('build')};
-actions['compare-build']=()=>navigate('compare');
-routes.compare=async()=>{const saved=await api('/builds');mount(header('Модернизация / до и после','Улучшение, которое видно.','Сравните состав, стоимость и игровые ориентиры двух конфигураций.',button('Изменить новый ПК','manual-build','','build'))+`<div class="comparison"><section class="compare-slot"><div class="eyebrow">01 / Текущая конфигурация</div><h2>Точка отсчёта.</h2><div class="stack"><p class="caption">Выберите сохранённую сборку или составьте текущий ПК из компонентов каталога.</p>${select('Сохранённый ПК','current-build',[['','Выберите конфигурацию'],...saved.map(build=>[build.id,build.name])])}${button('Указать компоненты','edit-current','small','edit')}<div id="current-parts"></div></div></section><section class="compare-slot proposed"><div class="eyebrow">02 / Новая конфигурация</div><h2>Следующий уровень.</h2><p class="caption">Используется выбор из студии сборки.</p><div id="proposed-parts"></div>${button('Открыть студию','manual-build','small','arrow')}</section></div><div class="section-heading"><div><h2>Ориентиры производительности</h2><p>Сравнение GPU. Изменение CPU не моделируется произвольным коэффициентом.</p></div>${resolution()}</div><div id="compare-performance"></div>`);$('[name="current-build"]').addEventListener('change',async event=>{if(event.target.value)state.currentIds=await api('/builds/'+event.target.value+'/parts');await renderComparison()});await renderComparison()};
-async function renderComparison(){comparison=await api('/builds/compare','POST',{current:state.currentIds,proposed:state.buildIds,width:state.width});for(const[key,id]of[['current','#current-parts'],['proposed','#proposed-parts']]){const result=comparison[key];$(id).innerHTML=result.build.parts.length?`<div class="check-list">${result.build.parts.map(part=>`<div class="check-row"><div class="spacer"><h3>${esc(part.name)}</h3><p>${part.category}</p></div><small>${money(part.price)}</small></div>`).join('')}</div><div class="price-total">${money(result.build.price)}</div><p class="help">${result.compatibility.hasErrors?'Есть несовместимости. Исправьте компоненты перед оформлением.':result.compatibility.isComplete?'Все обязательные категории выбраны.':'Конфигурация неполная.'}</p>`:'<p class="caption">Компоненты не выбраны.</p>'}const difference=comparison.proposed.build.price-comparison.current.build.price;$('#compare-performance').innerHTML=`<div class="panel-title"><span class="caption">Разница стоимости каталога: ${difference>=0?'+':''}${money(difference)}. Это не оценка продажи старых деталей.</span></div><div class="workspace">${comparison.current.performance.map(current=>{const proposed=comparison.proposed.performance.find(item=>item.gameId===current.gameId);const valid=current.fps&&proposed.fps;const percent=valid?Math.round((proposed.fps/current.fps-1)*100):null;return `<div class="compare-row"><div><small>${esc(current.game)} / текущий GPU</small><strong>${current.fps?(current.kind==='Замер из источника'?current.fps:current.lower+'–'+current.upper)+' fps':'—'}</strong><div class="fps-kind">${esc(current.kind)}</div></div><div><small>Новый GPU${percent!==null?' / '+(percent>=0?'+':'')+percent+'% по центру ориентира':''}</small><strong>${proposed.fps?(proposed.kind==='Замер из источника'?proposed.fps:proposed.lower+'–'+proposed.upper)+' fps':'—'}</strong><div class="fps-kind">${esc(proposed.kind)}</div></div></div>`}).join('')}</div><p class="help">Процент сравнивает центральные значения опубликованных тестов или расчётов; разные CPU и тестовые стенды могут искажать разницу. Подробные источники доступны в студии сборки.</p>`}
-actions['edit-current']=()=>{modal('Текущий компьютер',`<div class="stack">${categories.map(category=>select(category,'part'+categories.indexOf(category),[['','Не указано'],...state.parts.filter(part=>part.category===category).map(part=>[part.id,part.name])],state.currentIds.find(id=>state.parts.find(part=>part.id===id)?.category===category)||'')).join('')}</div>`,async data=>{state.currentIds=Object.values(data).map(Number).filter(Boolean);await renderComparison()},{submit:'Сравнить'})};
-routes.saved=async()=>{const builds=await api('/builds');mount(header('Коллекция конфигураций','Хорошие решения остаются.','Сохранённые проекты для клиентов и будущих модернизаций.',button('Новая конфигурация','manual-build','primary','plus'))+(builds.length?`<div class="saved-grid">${builds.map(build=>`<article class="saved-build"><div class="row between"><div class="eyebrow">BUILD / ${String(build.id).padStart(3,'0')}</div><small class="muted">${date(build.createdAt)}</small></div><h2>${esc(build.name)}</h2><p>${esc(build.parts)}</p><div class="caption">${esc(build.client)}</div><div class="row between"><div class="price-total">${money(build.price)}</div><div class="row gap-sm">${state.user.canReceive?`<button class="icon-button" data-action="delete-build" data-id="${build.id}" aria-label="Удалить сборку">${icon('trash')}</button>`:''}<button class="button small" data-action="open-build" data-id="${build.id}">Открыть ${icon('arrow')}</button></div></div><p class="help">Стоимость на момент сохранения. При открытии используются текущие цены каталога.</p></article>`).join('')}</div>`:empty('Коллекция пока пуста','Сохраните первую конфигурацию в студии сборки.')))};
-actions['open-build']=async target=>{state.buildIds=await api('/builds/'+target.dataset.id+'/parts');await navigate('build')};
-actions['delete-build']=target=>confirmAction('Удалить сохранённую сборку?','Заказы, оформленные по этой конфигурации, останутся без изменений.',async()=>{await api('/builds/'+target.dataset.id,'DELETE');await navigate('saved')});
+import {
+    state,
+    $,
+    $$,
+    icon,
+    hardware,
+    esc,
+    api,
+    refreshData,
+    navigate,
+    mount,
+    modal,
+    toast,
+    button,
+    header,
+    field,
+    select,
+    area,
+    actions,
+    routes,
+    money,
+    date,
+    empty,
+    categories,
+    selectedIds,
+    clientOptions,
+    confirmAction,
+} from "./core.js";
+let evaluation, comparison;
+function resolution() {
+    return `<div class="resolution-switch" aria-label="Разрешение">${[
+        [1920, "1080p"],
+        [2560, "1440p"],
+        [3840, "4K"],
+    ]
+        .map(
+            ([width, label]) =>
+                `<button class="${state.width === width ? "active" : ""}" data-action="resolution" data-width="${width}">${label}</button>`,
+        )
+        .join("")}</div>`;
+}
+routes.build = async () => {
+    mount(
+        header(
+            "Hardware atelier / студия сборки",
+            "Производительность — в балансе.",
+            "Подбирайте осмысленно. Совместимость, бюджет и игровые ориентиры в одном пространстве.",
+            `${button("Подобрать под бюджет", "budget", "", "search")}${button("Сохранить", "save-build", "primary", "saved")}`,
+        ) +
+            `<div class="build-layout"><div><div class="build-showcase"><div class="eyebrow">Индивидуальная конфигурация / desktop</div><h2>Система.<br>Продуманная до детали.</h2><div class="hardware-stage">${hardware("ПК", true)}</div><div class="stage-caption"><span>ILLUSTRATED HARDWARE / НЕ ФОТО ВЫБРАННОГО КОРПУСА</span><span>RD — 02</span></div></div><div class="build-summary"><div><small>Комплектующие / без работы по сборке</small><div id="build-price" class="price-total">${money(0)}</div></div>${button("Оформить заказ", "build-order", "small", "arrow")}</div></div><div class="component-list">${categories
+                .map(
+                    (category) =>
+                        `<div class="component"><div class="component-figure">${hardware(category)}</div><div><label for="component-${categories.indexOf(category)}">${category}</label><select id="component-${categories.indexOf(category)}" data-category="${category}"><option value="">Выберите комплектующую</option>${state.parts
+                            .filter((part) => part.category === category)
+                            .map(
+                                (part) =>
+                                    `<option value="${part.id}"${state.buildIds.includes(part.id) ? " selected" : ""}>${esc(part.name)} · ${money(part.price)}${part.stock === 0 ? " / под заказ" : ""}</option>`,
+                            )
+                            .join("")}</select></div></div>`,
+                )
+                .join(
+                    "",
+                )}</div></div><div class="section-heading"><div><h2>Инженерная проверка</h2><p>Сокет, память, габариты, питание и наличие.</p></div>${button("Сравнить с текущим ПК", "compare-build", "small", "compare")}</div><div id="compatibility" class="findings"></div><div class="section-heading"><div><h2>Игры. Без выдуманных цифр.</h2><p>Опубликованные замеры и отдельно помеченные расчёты.</p></div>${resolution()}</div><div id="performance"></div><div class="footer-note"><span>Проверка не заменяет руководство платы, QVL и проверку BIOS. Учитывайте кулер и дополнительные вентиляторы.</span></div>`,
+    );
+    $$(".component select").forEach((control) =>
+        control.addEventListener("change", async () => {
+            state.buildIds = selectedIds();
+            await evaluate();
+        }),
+    );
+    await evaluate();
+};
+async function evaluate() {
+    const ids = [...state.buildIds];
+    const width = state.width;
+    const result = await api("/builds/evaluate", "POST", {
+        partIds: ids,
+        width: state.width,
+    });
+    if (
+        state.route !== "build" ||
+        ids.join() !== state.buildIds.join() ||
+        width !== state.width
+    )
+        return;
+    evaluation = result;
+    $("#build-price").textContent = money(evaluation.build.price);
+    $("#compatibility").innerHTML = evaluation.compatibility.findings
+        .map(
+            (finding) =>
+                `<div class="finding ${finding.level === "Error" ? "error-finding" : ""}"><span class="finding-symbol">${finding.level === "Pass" ? "✓" : finding.level === "Error" ? "!" : "·"}</span><div><strong>${esc(finding.title)}</strong><p>${esc(finding.detail)}</p></div></div>`,
+        )
+        .join("");
+    $("#performance").innerHTML =
+        performance(evaluation.performance) +
+        `<p class="help">${esc(evaluation.notice)}</p>`;
+}
+function performance(items) {
+    return `<div class="fps-table"><div class="table-wrap"><table><thead><tr><th>Игра</th><th>Средний FPS / ориентир</th><th>Настройки теста</th><th>Данные</th></tr></thead><tbody>${items.map((item, index) => `<tr><td><div class="primary-text">${esc(item.game)}</div><div class="fps-kind">${esc(item.kind)}</div></td><td>${item.fps ? `<span class="fps-value">${item.kind === "Замер из источника" ? item.fps : item.lower + "–" + item.upper}</span><small class="muted"> fps</small><svg width="120" height="6" viewBox="0 0 120 6" aria-hidden="true"><rect width="120" height="4" rx="2" fill="#e7ebdf"/><rect width="${Math.min(120, (Number(item.fps) / 240) * 120)}" height="4" rx="2" fill="#91a27c"/></svg>` : '<span class="muted">Не публикуем без основания</span>'}</td><td><div class="secondary-text">${esc(item.preset) || "—"}</div></td><td><button class="source-button" data-action="fps-source" data-index="${index}">Методика и источник ↗</button></td></tr>`).join("")}</tbody></table></div></div>`;
+}
+actions.resolution = async (target) => {
+    state.width = Number(target.dataset.width);
+    if (state.route === "build") await routes.build();
+    else if (state.route === "compare") await routes.compare();
+};
+actions["fps-source"] = (target) => {
+    const item = evaluation.performance[Number(target.dataset.index)];
+    modal(
+        esc(item.game),
+        `<span class="badge">${esc(item.kind)}</span><p class="caption">${esc(item.explanation)}</p>${item.sources.map((source) => `<article class="source-item"><a href="${esc(source.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(source.sourceTitle)} ↗</a><p>${esc(source.gpu)} · ${source.width} × ${source.height}<br>${esc(source.preset)} · ${source.averageFps} FPS<br>RT: ${esc(source.rayTracing)} · масштабирование: ${esc(source.upscaling)}<br>Стенд: ${esc(source.testCpu)}<br>Дата теста: ${new Date(source.testDate).toLocaleDateString("ru-RU")}<br>${esc(source.notes)}</p></article>`).join("")}<p class="help">Это исторические тесты опубликованных версий игр. Для будущих и неподтверждённых игр числа не генерируются. Пресеты разных игр не равнозначны.</p>`,
+    );
+};
+actions["save-build"] = () => {
+    if (
+        !evaluation?.compatibility.isComplete ||
+        evaluation.compatibility.hasErrors
+    ) {
+        toast("Завершите конфигурацию и устраните несовместимости.", true);
+        return;
+    }
+    modal(
+        "Сохранить конфигурацию",
+        `<div class="stack">${field("Название сборки", "name", "Индивидуальная сборка", "text", 'required maxlength="150"')}${select("Клиент", "clientId", [["", "Без клиента"], ...clientOptions()])}</div>`,
+        async (data) => {
+            await api("/builds", "POST", {
+                partIds: state.buildIds,
+                name: data.name,
+                clientId: Number(data.clientId) || null,
+            });
+            toast("Конфигурация сохранена.");
+        },
+    );
+};
+actions["build-order"] = () => {
+    if (!state.user.canReceive) {
+        toast("Оформление доступно приемщику и администратору.", true);
+        return;
+    }
+    if (
+        !evaluation?.compatibility.isComplete ||
+        evaluation.compatibility.hasErrors
+    ) {
+        toast("Сначала завершите подбор совместимых компонентов.", true);
+        return;
+    }
+    modal(
+        "Сборка для клиента",
+        `<p class="caption">Комплектующие будут выделены со склада. Работа по сборке добавится к стоимости автоматически.</p><div class="stack">${select("Клиент", "clientId", clientOptions())}${field("Название устройства", "name", "Индивидуальная сборка ПК", "text", 'required maxlength="150"')}</div>`,
+        async (data) => {
+            const result = await api("/builds/order", "POST", {
+                partIds: state.buildIds,
+                name: data.name,
+                clientId: Number(data.clientId),
+            });
+            await refreshData();
+            await navigate("order", result.id);
+            toast("Сборка оформлена. Комплектующие выделены со склада.");
+        },
+        { submit: "Оформить заказ" },
+    );
+};
+actions.budget = () => navigate("budget");
+routes.budget = () => {
+    mount(
+        header(
+            "Индивидуальный подбор",
+            "Бюджет задан. Решение найдётся.",
+            "Полные совместимые сборки из каталога — с учётом стоимости работы.",
+            button("Ручной подбор", "manual-build", "", "build"),
+        ) +
+            `<section class="panel"><form id="budget-form" class="budget-panel"><div class="form-grid">${field("Бюджет вместе со сборкой, ₽", "budget", 100000, "number", 'required min="10000" max="1000000" step="1000"')}${select(
+                "Разрешение для приоритета GPU",
+                "width",
+                [
+                    [1920, "1920 × 1080"],
+                    [2560, "2560 × 1440"],
+                    [3840, "3840 × 2160"],
+                ],
+                state.width,
+            )}${select("Наличие", "inStockOnly", [
+                ["true", "Только на складе"],
+                ["false", "Можно под заказ"],
+            ])}</div><button class="button primary" type="submit">Подобрать варианты ${icon("arrow")}</button></form></section><div id="budget-results"><section class="editorial-note"><div><h3>Больше смысла в каждом компоненте.</h3><p>Алгоритм перебирает платформы, проверяет совместимость и питание, выбирает память от 16 ГБ и накопитель от 500 ГБ. Вы не платите за случайный набор дорогих деталей.</p></div><div class="editorial-index">₽</div></section></div>`,
+    );
+    $("#budget-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const submit = $("button", form);
+        submit.disabled = true;
+        try {
+            const data = Object.fromEntries(new FormData(form));
+            const result = await api("/builds/recommend", "POST", {
+                budget: Number(data.budget),
+                width: Number(data.width),
+                inStockOnly: data.inStockOnly === "true",
+            });
+            state.width = Number(data.width);
+            $("#budget-results").innerHTML =
+                `<p class="caption">${esc(result.message)}</p><div class="budget-proposals">${result.proposals.map((proposal, index) => `<article class="proposal"><div class="eyebrow">Вариант ${String(index + 1).padStart(2, "0")}</div><h3>${proposal.name}</h3><ul>${proposal.build.parts.map((part) => `<li>${esc(part.name)}</li>`).join("")}<li>Сборка и проверка · ${money(result.labor)}</li></ul><div class="price-total">${money(proposal.total)}</div><small class="muted">В бюджете осталось ${money(proposal.remaining)}</small><p class="help">${esc(proposal.reason)}</p><button class="button primary" data-action="choose-proposal" data-index="${index}">Открыть конфигурацию ${icon("arrow")}</button></article>`).join("")}</div>`;
+            state.proposals = result.proposals;
+        } catch (error) {
+            toast(error.message, true);
+        } finally {
+            submit.disabled = false;
+        }
+    });
+};
+actions["manual-build"] = () => navigate("build");
+actions["choose-proposal"] = (target) => {
+    state.buildIds = state.proposals[
+        Number(target.dataset.index)
+    ].build.parts.map((part) => part.id);
+    navigate("build");
+};
+actions["compare-build"] = () => navigate("compare");
+routes.compare = async () => {
+    const saved = await api("/builds");
+    mount(
+        header(
+            "Модернизация / до и после",
+            "Улучшение, которое видно.",
+            "Сравните состав, стоимость и игровые ориентиры двух конфигураций.",
+            button("Изменить новый ПК", "manual-build", "", "build"),
+        ) +
+            `<div class="comparison"><section class="compare-slot"><div class="eyebrow">01 / Текущая конфигурация</div><h2>Точка отсчёта.</h2><div class="stack"><p class="caption">Выберите сохранённую сборку или составьте текущий ПК из компонентов каталога.</p>${select("Сохранённый ПК", "current-build", [["", "Выберите конфигурацию"], ...saved.map((build) => [build.id, build.name])])}${button("Указать компоненты", "edit-current", "small", "edit")}<div id="current-parts"></div></div></section><section class="compare-slot proposed"><div class="eyebrow">02 / Новая конфигурация</div><h2>Следующий уровень.</h2><p class="caption">Используется выбор из студии сборки.</p><div id="proposed-parts"></div>${button("Открыть студию", "manual-build", "small", "arrow")}</section></div><div class="section-heading"><div><h2>Ориентиры производительности</h2><p>Сравнение GPU. Изменение CPU не моделируется произвольным коэффициентом.</p></div>${resolution()}</div><div id="compare-performance"></div>`,
+    );
+    $('[name="current-build"]').addEventListener("change", async (event) => {
+        if (event.target.value)
+            state.currentIds = await api(
+                "/builds/" + event.target.value + "/parts",
+            );
+        await renderComparison();
+    });
+    await renderComparison();
+};
+async function renderComparison() {
+    comparison = await api("/builds/compare", "POST", {
+        current: state.currentIds,
+        proposed: state.buildIds,
+        width: state.width,
+    });
+    for (const [key, id] of [
+        ["current", "#current-parts"],
+        ["proposed", "#proposed-parts"],
+    ]) {
+        const result = comparison[key];
+        $(id).innerHTML = result.build.parts.length
+            ? `<div class="check-list">${result.build.parts.map((part) => `<div class="check-row"><div class="spacer"><h3>${esc(part.name)}</h3><p>${part.category}</p></div><small>${money(part.price)}</small></div>`).join("")}</div><div class="price-total">${money(result.build.price)}</div><p class="help">${result.compatibility.hasErrors ? "Есть несовместимости. Исправьте компоненты перед оформлением." : result.compatibility.isComplete ? "Все обязательные категории выбраны." : "Конфигурация неполная."}</p>`
+            : '<p class="caption">Компоненты не выбраны.</p>';
+    }
+    const difference =
+        comparison.proposed.build.price - comparison.current.build.price;
+    $("#compare-performance").innerHTML =
+        `<div class="panel-title"><span class="caption">Разница стоимости каталога: ${difference >= 0 ? "+" : ""}${money(difference)}. Это не оценка продажи старых деталей.</span></div><div class="workspace">${comparison.current.performance
+            .map((current) => {
+                const proposed = comparison.proposed.performance.find(
+                    (item) => item.gameId === current.gameId,
+                );
+                const valid = current.fps && proposed.fps;
+                const percent = valid
+                    ? Math.round((proposed.fps / current.fps - 1) * 100)
+                    : null;
+                return `<div class="compare-row"><div><small>${esc(current.game)} / текущий GPU</small><strong>${current.fps ? (current.kind === "Замер из источника" ? current.fps : current.lower + "–" + current.upper) + " fps" : "—"}</strong><div class="fps-kind">${esc(current.kind)}</div></div><div><small>Новый GPU${percent !== null ? " / " + (percent >= 0 ? "+" : "") + percent + "% по центру ориентира" : ""}</small><strong>${proposed.fps ? (proposed.kind === "Замер из источника" ? proposed.fps : proposed.lower + "–" + proposed.upper) + " fps" : "—"}</strong><div class="fps-kind">${esc(proposed.kind)}</div></div></div>`;
+            })
+            .join(
+                "",
+            )}</div><p class="help">Процент сравнивает центральные значения опубликованных тестов или расчётов; разные CPU и тестовые стенды могут искажать разницу. Подробные источники доступны в студии сборки.</p>`;
+}
+actions["edit-current"] = () => {
+    modal(
+        "Текущий компьютер",
+        `<div class="stack">${categories.map((category) => select(category, "part" + categories.indexOf(category), [["", "Не указано"], ...state.parts.filter((part) => part.category === category).map((part) => [part.id, part.name])], state.currentIds.find((id) => state.parts.find((part) => part.id === id)?.category === category) || "")).join("")}</div>`,
+        async (data) => {
+            state.currentIds = Object.values(data).map(Number).filter(Boolean);
+            await renderComparison();
+        },
+        { submit: "Сравнить" },
+    );
+};
+routes.saved = async () => {
+    const builds = await api("/builds");
+    mount(
+        header(
+            "Коллекция конфигураций",
+            "Хорошие решения остаются.",
+            "Сохранённые проекты для клиентов и будущих модернизаций.",
+            button("Новая конфигурация", "manual-build", "primary", "plus"),
+        ) +
+            (builds.length
+                ? `<div class="saved-grid">${builds.map((build) => `<article class="saved-build"><div class="row between"><div class="eyebrow">BUILD / ${String(build.id).padStart(3, "0")}</div><small class="muted">${date(build.createdAt)}</small></div><h2>${esc(build.name)}</h2><p>${esc(build.parts)}</p><div class="caption">${esc(build.client)}</div><div class="row between"><div class="price-total">${money(build.price)}</div><div class="row gap-sm">${state.user.canReceive ? `<button class="icon-button" data-action="delete-build" data-id="${build.id}" aria-label="Удалить сборку">${icon("trash")}</button>` : ""}<button class="button small" data-action="open-build" data-id="${build.id}">Открыть ${icon("arrow")}</button></div></div><p class="help">Стоимость на момент сохранения. При открытии используются текущие цены каталога.</p></article>`).join("")}</div>`
+                : empty(
+                      "Коллекция пока пуста",
+                      "Сохраните первую конфигурацию в студии сборки.",
+                  )),
+    );
+};
+actions["open-build"] = async (target) => {
+    state.buildIds = await api("/builds/" + target.dataset.id + "/parts");
+    await navigate("build");
+};
+actions["delete-build"] = (target) =>
+    confirmAction(
+        "Удалить сохранённую сборку?",
+        "Заказы, оформленные по этой конфигурации, останутся без изменений.",
+        async () => {
+            await api("/builds/" + target.dataset.id, "DELETE");
+            await navigate("saved");
+        },
+    );

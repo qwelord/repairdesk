@@ -1,17 +1,237 @@
-import{state,$,$$,icon,hardware,esc,api,refreshData,navigate,mount,modal,toast,button,header,field,select,area,actions,routes,money}from'./core.js';
-import'./orders.js';
-import'./catalog.js';
-import'./builds.js';
+import {
+    download,
+    state,
+    $,
+    $$,
+    icon,
+    hardware,
+    esc,
+    api,
+    refreshData,
+    navigate,
+    mount,
+    modal,
+    toast,
+    button,
+    header,
+    field,
+    select,
+    area,
+    actions,
+    routes,
+    money,
+} from "./core.js";
+import "./orders.js";
+import "./catalog.js";
+import "./builds.js";
 
-const nav=[['orders','Заявки'],['build','Студия сборки'],['catalog','Комплектующие'],['clients','Клиенты'],['services','Работы и услуги'],['saved','Сохранённые'],['compare','Сравнение']];
-function shell(){const initials=state.user.name.split(' ').map(word=>word[0]).slice(0,2).join('');$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><a class="brand" href="#" data-route="orders"><span class="brand-mark">R</span><div><strong>repairdesk</strong><small>hardware atelier</small></div></a><div class="nav-caption">Рабочее пространство</div><nav aria-label="Основная навигация">${nav.map(([route,label])=>`<button class="nav-item" data-route="${route}">${icon(route)}<span>${label}</span></button>`).join('')}<div class="nav-caption">Система</div><button class="nav-item" data-route="settings">${icon('settings')}<span>Настройки</span></button></nav><div class="sidebar-bottom"><div class="local-indicator">Локальная мастерская</div><div class="row gap-sm"><div class="user-avatar">${esc(initials)}</div><div class="spacer"><div class="user-name">${esc(state.user.name)}</div><div class="user-role">${esc(state.user.role)}</div></div><button class="icon-button" data-action="logout" aria-label="Выйти">${icon('logout')}</button></div></div></aside><main class="main"><div class="topbar"><div class="breadcrumb">Мастерская<span>/</span><b id="breadcrumb-page"></b></div><button class="search-trigger" data-action="search">${icon('search')}<span>Найти в мастерской</span><kbd>Ctrl K</kbd></button></div><div class="content" id="content"></div></main></div>`}
-function login(){state.user=null;$('#app').innerHTML=`<main class="login"><section class="login-art"><a class="brand" href="#"><span class="brand-mark">R</span><div><strong>repairdesk</strong><small>hardware atelier</small></div></a><div><div class="eyebrow">Точность. Забота. Технологии.</div><h1>Техника<br>в деталях.</h1><p>Рабочее пространство для тех, кто возвращает технике жизнь и собирает больше, чем просто компьютеры.</p><div class="hardware-stage">${hardware('ПК',true)}</div></div><div class="login-foot">REPAIRDESK STUDIO / LOCAL EDITION 02</div></section><section class="login-form"><form id="login-form"><div class="eyebrow">Ваша мастерская</div><h2>С возвращением.</h2><p class="caption">Войдите, чтобы продолжить работу с заявками,<br>клиентами и конфигурациями.</p><div class="stack">${field('Логин','login','','text','required autocomplete="username" autofocus maxlength="80"')}${field('Пароль','password','','password','required autocomplete="current-password" maxlength="128"')}<div class="error" id="login-error" hidden></div><button class="button primary" type="submit">Войти в мастерскую ${icon('arrow')}</button></div><div class="login-demo">Учебная версия<br><strong>admin / RepairDesk2026!</strong><br>Также доступны роли reception и master.<br>После первого входа смените демонстрационный пароль.</div></form></section></main>`;$('#login-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=$('button',form);submit.disabled=true;$('#login-error').hidden=true;try{const data=Object.fromEntries(new FormData(form));state.user=await api('/auth/login','POST',data);await start()}catch(error){$('#login-error').textContent=error.message==='Войдите в систему.'?'Неверный логин или пароль.':error.message;$('#login-error').hidden=false}finally{submit.disabled=false}})}
-async function start(){shell();await refreshData();await navigate('orders')}
-actions.logout=async()=>{await api('/auth/logout','POST');login()};
-window.addEventListener('session-expired',()=>{if(state.user){$('#modal').close();login();toast('Сессия завершена. Войдите снова.',true)}});
-actions.search=()=>{modal('Найти в мастерской',`<label class="field"><span>Имя клиента, устройство, номер заявки или деталь</span><input id="global-search" type="search" autofocus placeholder="Например, RTX 4070 или RD-00001"></label><div id="search-results" class="search-results"></div>`);const input=$('#global-search');const render=()=>{const query=input.value.toLocaleLowerCase().trim();const results=query.length<2?[]:[...state.orders.filter(order=>(order.device+' '+order.number+' '+order.clientName+' '+order.phone).toLowerCase().includes(query)).map(order=>({title:order.device,detail:order.number+' · '+order.clientName,route:'order',id:order.id,kind:'orders'})),...state.clients.filter(client=>(client.name+' '+client.phone).toLowerCase().includes(query)).map(client=>({title:client.name,detail:client.phone,route:'clients',id:client.id,kind:'clients'})),...state.parts.filter(part=>part.name.toLowerCase().includes(query)).map(part=>({title:part.name,detail:money(part.price)+' · '+part.stockText,route:'catalog',id:part.id,kind:'catalog'}))].slice(0,15);$('#search-results').innerHTML=results.map((result,index)=>`<button class="search-result" data-index="${index}">${icon(result.kind)}<div><strong>${esc(result.title)}</strong><small>${esc(result.detail)}</small></div>${icon('arrow')}</button>`).join('')||(query.length<2?'<p class="caption">Введите хотя бы два символа.</p>':'<p class="caption">Совпадений нет. Попробуйте другой запрос.</p>');$$('.search-result').forEach(item=>item.addEventListener('click',async()=>{const result=results[Number(item.dataset.index)];$('#modal').close();if(result.route==='catalog')state.search=result.title;await navigate(result.route,result.id)}))};input.addEventListener('input',render);render();input.focus()};
-document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&state.user){event.preventDefault();actions.search()}});
+const nav = [
+    ["orders", "Заявки"],
+    ["build", "Студия сборки"],
+    ["catalog", "Комплектующие"],
+    ["clients", "Клиенты"],
+    ["services", "Работы и услуги"],
+    ["saved", "Сохранённые"],
+    ["compare", "Сравнение"],
+];
+function shell() {
+    const initials = state.user.name
+        .split(" ")
+        .map((word) => word[0])
+        .slice(0, 2)
+        .join("");
+    $("#app").innerHTML =
+        `<div class="shell"><aside class="sidebar"><a class="brand" href="#" data-route="orders"><span class="brand-mark">R</span><div><strong>repairdesk</strong><small>hardware atelier</small></div></a><div class="nav-caption">Рабочее пространство</div><nav aria-label="Основная навигация">${nav.map(([route, label]) => `<button class="nav-item" data-route="${route}">${icon(route)}<span>${label}</span></button>`).join("")}<div class="nav-caption">Система</div><button class="nav-item" data-route="settings">${icon("settings")}<span>Настройки</span></button></nav><div class="sidebar-bottom"><div class="local-indicator">Локальная мастерская</div><div class="row gap-sm"><div class="user-avatar">${esc(initials)}</div><div class="spacer"><div class="user-name">${esc(state.user.name)}</div><div class="user-role">${esc(state.user.role)}</div></div><button class="icon-button" data-action="logout" aria-label="Выйти">${icon("logout")}</button></div></div></aside><main class="main"><div class="topbar"><div class="breadcrumb">Мастерская<span>/</span><b id="breadcrumb-page"></b></div><button class="search-trigger" data-action="search">${icon("search")}<span>Найти в мастерской</span><kbd>Ctrl K</kbd></button></div><div class="content" id="content"></div></main></div>`;
+}
+function login() {
+    state.user = null;
+    $("#app").innerHTML =
+        `<main class="login"><section class="login-art"><a class="brand" href="#"><span class="brand-mark">R</span><div><strong>repairdesk</strong><small>hardware atelier</small></div></a><div><div class="eyebrow">Точность. Забота. Технологии.</div><h1>Техника<br>в деталях.</h1><p>Рабочее пространство для тех, кто возвращает технике жизнь и собирает больше, чем просто компьютеры.</p><div class="hardware-stage">${hardware("ПК", true)}</div></div><div class="login-foot">REPAIRDESK STUDIO / LOCAL EDITION 02</div></section><section class="login-form"><form id="login-form"><div class="eyebrow">Ваша мастерская</div><h2>С возвращением.</h2><p class="caption">Войдите, чтобы продолжить работу с заявками,<br>клиентами и конфигурациями.</p><div class="stack">${field("Логин", "login", "", "text", 'required autocomplete="username" autofocus maxlength="80"')}${field("Пароль", "password", "", "password", 'required autocomplete="current-password" maxlength="128"')}<div class="error" id="login-error" hidden></div><button class="button primary" type="submit">Войти в мастерскую ${icon("arrow")}</button></div><div class="login-demo">Учебная версия<br><strong>admin / RepairDesk2026!</strong><br>Также доступны роли reception и master.<br>После первого входа смените демонстрационный пароль.</div></form></section></main>`;
+    $("#login-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const submit = $("button", form);
+        submit.disabled = true;
+        $("#login-error").hidden = true;
+        try {
+            const data = Object.fromEntries(new FormData(form));
+            state.user = await api("/auth/login", "POST", data);
+            await start();
+        } catch (error) {
+            $("#login-error").textContent =
+                error.message === "Войдите в систему."
+                    ? "Неверный логин или пароль."
+                    : error.message;
+            $("#login-error").hidden = false;
+        } finally {
+            submit.disabled = false;
+        }
+    });
+}
+async function start() {
+    shell();
+    await refreshData();
+    await navigate("orders");
+}
+actions.logout = async () => {
+    await api("/auth/logout", "POST");
+    login();
+};
+window.addEventListener("session-expired", () => {
+    if (state.user) {
+        $("#modal").close();
+        login();
+        toast("Сессия завершена. Войдите снова.", true);
+    }
+});
+actions.search = () => {
+    modal(
+        "Найти в мастерской",
+        `<label class="field"><span>Имя клиента, устройство, номер заявки или деталь</span><input id="global-search" type="search" autofocus placeholder="Например, RTX 4070 или RD-00001"></label><div id="search-results" class="search-results"></div>`,
+    );
+    const input = $("#global-search");
+    const render = () => {
+        const query = input.value.toLocaleLowerCase().trim();
+        const results =
+            query.length < 2
+                ? []
+                : [
+                      ...state.orders
+                          .filter((order) =>
+                              (
+                                  order.device +
+                                  " " +
+                                  order.number +
+                                  " " +
+                                  order.clientName +
+                                  " " +
+                                  order.phone
+                              )
+                                  .toLowerCase()
+                                  .includes(query),
+                          )
+                          .map((order) => ({
+                              title: order.device,
+                              detail: order.number + " · " + order.clientName,
+                              route: "order",
+                              id: order.id,
+                              kind: "orders",
+                          })),
+                      ...state.clients
+                          .filter((client) =>
+                              (client.name + " " + client.phone)
+                                  .toLowerCase()
+                                  .includes(query),
+                          )
+                          .map((client) => ({
+                              title: client.name,
+                              detail: client.phone,
+                              route: "clients",
+                              id: client.id,
+                              kind: "clients",
+                          })),
+                      ...state.parts
+                          .filter((part) =>
+                              part.name.toLowerCase().includes(query),
+                          )
+                          .map((part) => ({
+                              title: part.name,
+                              detail:
+                                  money(part.price) + " · " + part.stockText,
+                              route: "catalog",
+                              id: part.id,
+                              kind: "catalog",
+                          })),
+                  ].slice(0, 15);
+        $("#search-results").innerHTML =
+            results
+                .map(
+                    (result, index) =>
+                        `<button class="search-result" data-index="${index}">${icon(result.kind)}<div><strong>${esc(result.title)}</strong><small>${esc(result.detail)}</small></div>${icon("arrow")}</button>`,
+                )
+                .join("") ||
+            (query.length < 2
+                ? '<p class="caption">Введите хотя бы два символа.</p>'
+                : '<p class="caption">Совпадений нет. Попробуйте другой запрос.</p>');
+        $$(".search-result").forEach((item) =>
+            item.addEventListener("click", async () => {
+                const result = results[Number(item.dataset.index)];
+                $("#modal").close();
+                if (result.route === "catalog") state.search = result.title;
+                await navigate(result.route, result.id);
+            }),
+        );
+    };
+    input.addEventListener("input", render);
+    render();
+    input.focus();
+};
+document.addEventListener("keydown", (event) => {
+    if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "k" &&
+        state.user
+    ) {
+        event.preventDefault();
+        actions.search();
+    }
+});
 
-routes.settings=()=>{mount(header('Параметры мастерской','Всё на своём месте.','Профиль, команда и локальная инфраструктура. Без облака и внешних сервисов.')+`<div class="settings-grid"><section class="panel"><div class="panel-title"><h2>Ваш профиль</h2><span class="badge active">${esc(state.user.role)}</span></div><h3>${esc(state.user.name)}</h3><p class="caption">Логин: ${esc(state.user.login)}</p><div class="divider"></div><form id="password-form" class="stack">${field('Текущий пароль','oldPassword','','password','required autocomplete="current-password"')}${field('Новый пароль','newPassword','','password','required minlength="10" maxlength="128" autocomplete="new-password"')}<p class="help">От 10 до 128 символов. Не используйте демонстрационный пароль.</p><button class="button primary" type="submit">Обновить пароль</button></form></section><div class="stack"><section class="panel"><div class="panel-title"><h2>Локальная архитектура</h2><span class="eyebrow">Studio 02</span></div><div class="check-list"><div class="check-row"><span class="check-symbol">01</span><div><h3>C# / ASP.NET Core REST API</h3><p>Все данные интерфейса проходят через HTTP API.</p></div></div><div class="check-row"><span class="check-symbol">02</span><div><h3>MySQL / MariaDB</h3><p>Транзакции, ограничения целостности и история изменений.</p></div></div><div class="check-row"><span class="check-symbol">03</span><div><h3>Без Docker и облака</h3><p>Сервер слушает только 127.0.0.1. Данные остаются на этом ПК.</p></div></div></div></section><section class="panel"><div class="panel-title"><h2>Команда мастерской</h2>${state.user.canManage?button('Сотрудник','new-staff','small','plus'):''}</div>${state.staff.map(user=>`<div class="check-row"><span class="user-avatar">${esc(user.name[0])}</span><div><h3>${esc(user.name)}</h3><p>${esc(user.role)} · ${esc(user.login)}</p></div></div>`).join('')}</section></div></div>`);$('#password-form').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const submit=$('button',form);submit.disabled=true;try{await api('/auth/password','PUT',Object.fromEntries(new FormData(form)));form.reset();toast('Пароль обновлён.')}catch(error){toast(error.message,true)}finally{submit.disabled=false}})};
-actions['new-staff']=()=>modal('Новый сотрудник',`<div class="form-grid">${field('Имя и фамилия','name','','text','required maxlength="120"')}${field('Логин','login','','text','required maxlength="80"')}${field('Временный пароль','password','','password','required minlength="10" maxlength="128"')}${select('Роль','role',state.reference.roles)}</div>`,async data=>{await api('/staff','POST',data);await refreshData();await navigate('settings');toast('Учётная запись создана.')});
-try{state.user=await api('/auth/me');await start()}catch{login()}
+routes.settings = () => {
+    mount(
+        header(
+            "Параметры мастерской",
+            "Всё на своём месте.",
+            "Профиль, команда и локальная инфраструктура. Без облака и внешних сервисов.",
+            state.user.canManage
+                ? button("Резервная копия SQL", "backup", "", "download")
+                : "",
+        ) +
+            `<div class="settings-grid"><section class="panel"><div class="panel-title"><h2>Ваш профиль</h2><span class="badge active">${esc(state.user.role)}</span></div><h3>${esc(state.user.name)}</h3><p class="caption">Логин: ${esc(state.user.login)}</p><div class="divider"></div><form id="password-form" class="stack">${field("Текущий пароль", "oldPassword", "", "password", 'required autocomplete="current-password"')}${field("Новый пароль", "newPassword", "", "password", 'required minlength="10" maxlength="128" autocomplete="new-password"')}<p class="help">От 10 до 128 символов. Не используйте демонстрационный пароль.</p><button class="button primary" type="submit">Обновить пароль</button></form></section><div class="stack"><section class="panel"><div class="panel-title"><h2>Локальная архитектура</h2><span class="eyebrow">Studio 02</span></div><div class="check-list"><div class="check-row"><span class="check-symbol">01</span><div><h3>C# / ASP.NET Core REST API</h3><p>Все данные интерфейса проходят через HTTP API.</p></div></div><div class="check-row"><span class="check-symbol">02</span><div><h3>MySQL / MariaDB</h3><p>Транзакции, ограничения целостности и история изменений.</p></div></div><div class="check-row"><span class="check-symbol">03</span><div><h3>Без Docker и облака</h3><p>Сервер слушает только 127.0.0.1. Данные остаются на этом ПК.</p></div></div></div></section><section class="panel"><div class="panel-title"><h2>Команда мастерской</h2>${state.user.canManage ? button("Сотрудник", "new-staff", "small", "plus") : ""}</div>${state.staff.map((user) => `<div class="check-row"><span class="user-avatar">${esc(user.name[0])}</span><div><h3>${esc(user.name)}</h3><p>${esc(user.role)} · ${esc(user.login)}</p></div></div>`).join("")}</section></div></div>`,
+    );
+    $("#password-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const submit = $("button", form);
+        submit.disabled = true;
+        try {
+            await api(
+                "/auth/password",
+                "PUT",
+                Object.fromEntries(new FormData(form)),
+            );
+            form.reset();
+            toast("Пароль обновлён.");
+        } catch (error) {
+            toast(error.message, true);
+        } finally {
+            submit.disabled = false;
+        }
+    });
+};
+actions["new-staff"] = () =>
+    modal(
+        "Новый сотрудник",
+        `<div class="form-grid">${field("Имя и фамилия", "name", "", "text", 'required maxlength="120"')}${field("Логин", "login", "", "text", 'required maxlength="80"')}${field("Временный пароль", "password", "", "password", 'required minlength="10" maxlength="128"')}${select("Роль", "role", state.reference.roles)}</div>`,
+        async (data) => {
+            await api("/staff", "POST", data);
+            await refreshData();
+            await navigate("settings");
+            toast("Учётная запись создана.");
+        },
+    );
+actions.backup = () => download("/exports/backup.sql", "RepairDesk-backup.sql");
+window.addEventListener("unhandledrejection", (event) => {
+    event.preventDefault();
+    toast(
+        event.reason?.message ||
+            "Не удалось выполнить действие. Повторите после обновления.",
+        true,
+    );
+});
+try {
+    state.user = await api("/auth/me");
+    await start();
+} catch {
+    login();
+}
