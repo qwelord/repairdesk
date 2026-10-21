@@ -1127,17 +1127,6 @@ tbody tr.clickable:hover {
     border-radius: var(--radius);
     overflow: hidden;
 }
-.component {
-    display: grid;
-    grid-template-columns: 36px 1fr;
-    gap: 11px;
-    padding: 13px 20px;
-    border-bottom: 1px solid #e9ede2;
-    align-items: center;
-}
-.component:last-child {
-    border: 0;
-}
 .component-figure {
     width: 36px;
     height: 36px;
@@ -1149,20 +1138,307 @@ tbody tr.clickable:hover {
 .component-figure .hardware-photo {
     border-radius: inherit;
 }
-.component label {
-    font-size: 9px;
-    color: #8c977e;
-    display: block;
-    margin-bottom: 4px;
-}
-.component select {
+.component-choice {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 28px;
+    gap: 14px;
+    align-items: center;
     width: 100%;
+    padding: 17px 20px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    color: var(--ink);
+    transition: background 0.15s;
+}
+.component-choice:last-child {
+    border-bottom: 0;
+}
+.component-choice:hover {
+    background: #f1f4eb;
+}
+.component-choice .component-figure {
+    width: 44px;
+    height: 52px;
+    overflow: hidden;
+}
+.component-copy {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+.component-copy strong {
+    font-size: 12px;
+    font-weight: 550;
+    overflow-wrap: anywhere;
+}
+.component-category {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 10px;
+    color: #566149;
+}
+.component-category > span {
+    color: #737c6c;
+    margin-left: auto;
+}
+.component-detail {
+    font-size: 10px;
+    color: #66715d;
+}
+.component-change {
+    display: grid;
+    place-items: center;
+    height: 28px;
+    border: 1px solid #d3dac8;
+    border-radius: 50%;
+}
+.component-change svg {
+    width: 13px;
+    height: 13px;
+}
+.component-dialog .modal-body {
+    padding-top: 18px;
+}
+.picker-intro {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+    margin-bottom: 18px;
+}
+.picker-intro p {
+    margin: 0;
+    font-size: 17px;
+}
+.picker-intro > span {
+    color: #65705a;
+    font-size: 11px;
+}
+.picker-search {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: white;
+    border: 1px solid #c5ceba;
+    border-radius: 10px;
+    padding: 0 15px;
+}
+.picker-search svg {
+    flex-shrink: 0;
+    width: 19px;
+}
+.picker-search input {
     border: 0;
     background: transparent;
-    padding: 3px 20px 3px 0;
+    padding: 15px 0;
+    min-width: 0;
+    width: 100%;
+    font-size: 14px;
+}
+.picker-search:focus-within {
+    outline: 2px solid #65764e;
+    outline-offset: 2px;
+}
+.picker-search input:focus {
+    outline: none;
+    box-shadow: none;
+}
+.picker-brands {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 16px 0;
+}
+.picker-brands button {
+    padding: 7px 13px;
+    border: 1px solid #d4dbc9;
+    border-radius: 30px;
+    background: transparent;
+    color: #505c45;
     font-size: 11px;
+    cursor: pointer;
+}
+.picker-brands button.active {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+}
+.picker-controls,
+.picker-result-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.picker-controls {
+    padding: 12px 0;
+    border-block: 1px solid var(--line);
+}
+.picker-controls > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.picker-controls label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    cursor: pointer;
+}
+.picker-controls input {
+    width: 15px;
+    height: 15px;
+    accent-color: #536342;
+}
+.picker-controls button,
+.picker-result-line button {
+    border: 0;
+    padding: 5px 0;
+    background: transparent;
+    color: #4e6040;
+    cursor: pointer;
+    font-size: 11px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.picker-result-line {
+    padding: 15px 0;
+    min-height: 48px;
+    font-size: 11px;
+    color: #68745d;
+}
+.picker-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.picker-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+    padding: 18px;
+    border: 1px solid #d8dfce;
+    border-radius: 12px;
+    background: white;
     color: var(--ink);
     cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+.picker-card:hover {
+    border-color: #7b8e63;
+    background: #f5f7f0;
+}
+.picker-card.selected {
+    border-color: #657c4c;
+    box-shadow: inset 0 0 0 1px #657c4c;
+    background: #f0f4e8;
+}
+.picker-card-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 7px;
+    font-size: 10px;
+    color: #68745d;
+    margin-bottom: 15px;
+}
+.picker-stock {
+    color: #496434;
+}
+.picker-stock.unavailable {
+    color: #8e6340;
+}
+.picker-card > strong {
+    font-size: 15px;
+    font-weight: 550;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    margin-bottom: 12px;
+}
+.picker-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 12px;
+}
+.picker-specs > span {
+    border: 1px solid #e1e6d8;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #59644d;
+    overflow-wrap: anywhere;
+}
+.picker-conflict {
+    color: #746348;
+    font-size: 10px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+.picker-card-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    margin-top: auto;
+    width: 100%;
+}
+.picker-card-bottom b {
+    font-size: 21px;
+    font-weight: 500;
+}
+.picker-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+.picker-card-action svg {
+    width: 14px;
+    height: 14px;
+}
+.picker-footnote {
+    font-size: 10px;
+    color: #727b68;
+    line-height: 1.65;
+    margin: 18px 0 0;
+}
+.picker-empty {
+    grid-column: 1 / -1;
+    padding: 28px 0;
+    text-align: center;
+    color: #67745b;
+}
+@media (max-width: 560px) {
+    .picker-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .component-choice {
+        padding: 15px 12px;
+        gap: 10px;
+    }
+    .component-category > span {
+        margin-left: 0;
+    }
+    .component-dialog .modal-body {
+        padding-inline: 16px;
+    }
+    .picker-card {
+        padding: 16px;
+    }
 }
 .build-summary {
     margin-top: 18px;

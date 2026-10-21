@@ -359,10 +359,10 @@ public sealed partial class Repository(DatabaseSettings settings)
         _ = Actor;
         return QueryAsync("SELECT id,name FROM games ORDER BY id", reader => new Game(reader.GetInt32(0), reader.GetString(1)));
     }
-    public Task<List<Benchmark>> BenchmarksAsync(int gpuId, int width)
+    public Task<List<Benchmark>> BenchmarksAsync(int gpuId = 0, int width = 0)
     {
         _ = Actor;
-        return QueryAsync("SELECT b.id,b.game_id,g.name,b.gpu_id,p.name,b.test_cpu,b.width,b.height,b.preset,b.ray_tracing,b.upscaling,b.average_fps,b.low_fps,b.source_title,b.source_url,b.test_date,b.notes FROM benchmarks b JOIN games g ON g.id=b.game_id JOIN parts p ON p.id=b.gpu_id WHERE gpu_id=@gpu AND width=@width ORDER BY g.id", reader => new Benchmark(reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetInt32(3), reader.GetString(4), reader.GetString(5), reader.GetInt32(6), reader.GetInt32(7), reader.GetString(8), reader.GetString(9), reader.GetString(10), reader.GetDecimal(11), reader.IsDBNull(12) ? null : reader.GetDecimal(12), reader.GetString(13), reader.GetString(14), reader.GetDateTime(15), reader.GetString(16)), ("gpu", gpuId), ("width", width));
+        return QueryAsync("SELECT b.id,b.game_id,g.name,b.gpu_id,p.name,b.test_cpu,b.width,b.height,b.preset,b.ray_tracing,b.upscaling,b.average_fps,b.low_fps,b.source_title,b.source_url,b.test_date,b.notes FROM benchmarks b JOIN games g ON g.id=b.game_id JOIN parts p ON p.id=b.gpu_id WHERE (@gpu=0 OR gpu_id=@gpu) AND (@width=0 OR width=@width) ORDER BY g.id", reader => new Benchmark(reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetInt32(3), reader.GetString(4), reader.GetString(5), reader.GetInt32(6), reader.GetInt32(7), reader.GetString(8), reader.GetString(9), reader.GetString(10), reader.GetDecimal(11), reader.IsDBNull(12) ? null : reader.GetDecimal(12), reader.GetString(13), reader.GetString(14), reader.GetDateTime(15), reader.GetString(16)), ("gpu", gpuId), ("width", width));
     }
 
     public Task SaveBuildAsync(string name, int? clientId, BuildSelection build) => TransactionAsync(async (connection, transaction) =>

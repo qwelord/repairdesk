@@ -262,11 +262,6 @@ export const categories = [
     "Корпус",
     "Накопитель",
 ];
-export function selectedIds() {
-    return $$(".component select")
-        .map((select) => Number(select.value))
-        .filter(Boolean);
-}
 export async function afterSave(message = "Сохранено.") {
     await refreshData();
     await navigate(state.route, state.routeId);

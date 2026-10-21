@@ -51,7 +51,7 @@ public static class BuildEngine
         var options = new List<(BuildSelection Build, decimal Score)>();
         foreach (var cpu in Category(Categories[0]))
             foreach (var board in Category(Categories[1]).Where(board => board.Socket == cpu.Socket))
-                foreach (var gpu in Category(Categories[2]))
+                foreach (var gpu in Category(Categories[2]).Where(gpu => gpuIds.Contains(gpu.Id)))
                 {
                     var ram = Category(Categories[3]).FirstOrDefault(part => part.MemoryType == board.MemoryType && part.Capacity >= 16 && part.Capacity <= board.MaxMemoryGb);
                     var storage = Category(Categories[6]).FirstOrDefault(part => part.Capacity >= 500);
@@ -90,11 +90,7 @@ public static class BuildEngine
 
     public static async Task<List<Benchmark>> BenchmarksAsync(Repository repository, IReadOnlyList<Part> parts)
     {
-        var rows = new List<Benchmark>();
-        foreach (var gpu in parts.Where(part => part.Category == "Видеокарта"))
-            foreach (var width in new[] { 1920, 2560, 3840 })
-                rows.AddRange(await repository.BenchmarksAsync(gpu.Id, width));
-        return rows;
+        return await repository.BenchmarksAsync();
     }
 
     public static PerformanceResult Predict(Game game, int? gpuId, int width, IReadOnlyList<Benchmark> rows)

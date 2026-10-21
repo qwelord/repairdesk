@@ -22,10 +22,10 @@ import {
     date,
     empty,
     categories,
-    selectedIds,
     clientOptions,
     confirmAction,
 } from "./core.js";
+import { componentRow, openPicker } from "./component-picker.js";
 let evaluation, comparison;
 function resolution() {
     return `<div class="resolution-switch" aria-label="Разрешение">${[
@@ -48,25 +48,10 @@ routes.build = async () => {
             `${button("Подобрать под бюджет", "budget", "", "search")}${button("Сохранить", "save-build", "primary", "saved")}`,
         ) +
             `<div class="build-layout"><div><div class="build-showcase"><div class="eyebrow">Индивидуальная конфигурация / desktop</div><h2>Система.<br>Продуманная до детали.</h2><div class="hardware-stage">${hardware("ПК", true)}</div><div class="stage-caption"><span>ФОТО ПРИМЕРА СБОРКИ / НЕ ВИЗУАЛИЗАЦИЯ ВЫБРАННЫХ ДЕТАЛЕЙ</span><span>RD — 02</span></div></div><div class="build-summary"><div><small>Комплектующие / без работы по сборке</small><div id="build-price" class="price-total">${money(0)}</div></div>${button("Оформить заказ", "build-order", "small", "arrow")}</div></div><div class="component-list">${categories
-                .map(
-                    (category) =>
-                        `<div class="component"><div class="component-figure">${hardware(category)}</div><div><label for="component-${categories.indexOf(category)}">${category}</label><select id="component-${categories.indexOf(category)}" data-category="${category}"><option value="">Выберите комплектующую</option>${state.parts
-                            .filter((part) => part.category === category)
-                            .map(
-                                (part) =>
-                                    `<option value="${part.id}"${state.buildIds.includes(part.id) ? " selected" : ""}>${esc(part.name)} · ${money(part.price)}${part.stock === 0 ? " / под заказ" : ""}</option>`,
-                            )
-                            .join("")}</select></div></div>`,
-                )
+                .map((category) => componentRow(category, state.buildIds))
                 .join(
                     "",
                 )}</div></div><div class="section-heading"><div><h2>Инженерная проверка</h2><p>Сокет, память, габариты, питание и наличие.</p></div>${button("Сравнить с текущим ПК", "compare-build", "small", "compare")}</div><div id="compatibility" class="findings"></div><div class="section-heading"><div><h2>Игры. Без выдуманных цифр.</h2><p>Опубликованные замеры и отдельно помеченные расчёты.</p></div>${resolution()}</div><div id="performance"></div><div class="footer-note"><span>Проверка не заменяет руководство платы, QVL и проверку BIOS. Учитывайте кулер и дополнительные вентиляторы.</span></div>`,
-    );
-    $$(".component select").forEach((control) =>
-        control.addEventListener("change", async () => {
-            state.buildIds = selectedIds();
-            await evaluate();
-        }),
     );
     await evaluate();
 };
@@ -280,12 +265,34 @@ async function renderComparison() {
 actions["edit-current"] = () => {
     modal(
         "Текущий компьютер",
-        `<div class="stack">${categories.map((category) => select(category, "part" + categories.indexOf(category), [["", "Не указано"], ...state.parts.filter((part) => part.category === category).map((part) => [part.id, part.name])], state.currentIds.find((id) => state.parts.find((part) => part.id === id)?.category === category) || "")).join("")}</div>`,
-        async (data) => {
-            state.currentIds = Object.values(data).map(Number).filter(Boolean);
-            await renderComparison();
+        `<p class="caption">Изменения сразу участвуют в сравнении.</p><div class="component-list">${categories.map((category) => componentRow(category, state.currentIds, "current")).join("")}</div>`,
+        null,
+        { wide: true },
+    );
+};
+actions["pick-component"] = (target) => {
+    const current = target.dataset.context === "current";
+    openPicker(
+        target.dataset.category,
+        current ? state.currentIds : state.buildIds,
+        async (ids) => {
+            if (current) {
+                state.currentIds = ids;
+                await renderComparison();
+                actions["edit-current"]();
+            } else {
+                state.buildIds = ids;
+                await routes.build();
+                document
+                    .querySelectorAll("[data-action='pick-component']")
+                    .forEach((control) => {
+                        if (
+                            control.dataset.category === target.dataset.category
+                        )
+                            control.focus({ preventScroll: true });
+                    });
+            }
         },
-        { submit: "Сравнить" },
     );
 };
 routes.saved = async () => {
