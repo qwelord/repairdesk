@@ -48,5 +48,51 @@ INSERT INTO benchmarks(game_id,gpu_id,test_cpu,width,height,preset,ray_tracing,u
 (3,8,'AMD Ryzen 9 7950X3D, 32GB DDR5-6000',3840,2160,'Very High, MSAA 4x','Нет','Выключено',107.8,66.7,'ComputerBase: Counter-Strike 2',@csbase,'2023-09-28','Сцена Ancient. В 4K MSAA 4x.');
 INSERT INTO benchmarks(game_id,gpu_id,test_cpu,width,height,preset,ray_tracing,upscaling,average_fps,source_title,source_url,test_date,notes) VALUES
 (9,7,'Стенд Technopat, см. источник',1920,1080,'Ultra','Нет','В таблице не указано',76,'Technopat: NVIDIA RTX 4060','https://www.technopat.net/2023/06/28/nvidia-geforce-rtx-4060-incelemesi/','2023-06-28','RDR2: среднее 76, минимум 49 FPS в обзоре. Набор отдельных настроек и версия игры влияют на сравнение.');
+INSERT INTO games(id,name) VALUES (10,'Hogwarts Legacy'),(11,'Far Cry 5'),(12,'Far Cry 6'),(13,'Metro Exodus (2019)'),(14,'Tiny Tina’s Wonderlands');
+SET @review='https://www.notebookcheck.net/KFA2-GeForce-RTX-4060-1-Click-OC-2X-graphics-card-review-Current-entry-level-GPU-uses-more-power-than-expected.736269.0.html';
+INSERT INTO benchmarks(game_id,gpu_id,test_cpu,width,height,preset,ray_tracing,upscaling,average_fps,source_title,source_url,test_date,notes) VALUES
+(10,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra, AF High, TAA','Не указан','Не указано',66.5,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Опубликованный тест KFA2 RTX 4060 OC. Исполнение MSI из каталога может отличаться.'),
+(10,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra, AF High, TAA','Не указан','Не указано',46.3,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Исторический тест 2023 года.'),
+(10,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra, AF High, TAA','Не указан','Не указано',24.9,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Исторический тест 2023 года.'),
+(11,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra, TAA','Нет','Не указано',162,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Встроенный бенчмарк.'),
+(11,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra, TAA','Нет','Не указано',110,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Встроенный бенчмарк.'),
+(11,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra, TAA','Нет','Не указано',55,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Встроенный бенчмарк.'),
+(12,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra + HD Textures, TAA','Нет','Не указано',122.1,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Отдельная таблица DXR не используется.'),
+(12,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra + HD Textures, TAA','Нет','Не указано',85.4,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Отдельная таблица DXR не используется.'),
+(12,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra + HD Textures, TAA','Нет','Не указано',40.9,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Отдельная таблица DXR не используется.'),
+(13,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra, 16xAF','Нет','Не указано',80.2,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Оригинальная версия, не Enhanced Edition.'),
+(13,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra, 16xAF','Нет','Не указано',62.9,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Оригинальная версия, не Enhanced Edition.'),
+(13,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra, 16xAF','Нет','Не указано',38.3,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Оригинальная версия, не Enhanced Edition.'),
+(14,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Badass, DX12','Не указан','Не указано',92.4,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Исторический тест 2023 года.'),
+(14,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Badass, DX12','Не указан','Не указано',62.6,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Исторический тест 2023 года.'),
+(14,7,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Badass, DX12','Не указан','Не указано',26.6,'Notebookcheck: KFA2 RTX 4060',@review,'2023-07-25','Исторический тест 2023 года.');
+SET @rxreview='https://www.notebookcheck.net/AMD-Radeon-RX-7600-desktop-GPU-review-RDNA3-vs-Ada-Lovelace-in-the-entry-level-segment.744635.0.html';
+INSERT INTO benchmarks(game_id,gpu_id,test_cpu,width,height,preset,ray_tracing,upscaling,average_fps,source_title,source_url,test_date,notes) VALUES
+(2,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra (3/3), best looking','Нет','Нет',168.5,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Результаты XFX QICK 308 OC; другое исполнение RX 7600 может отличаться.'),
+(2,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra (3/3), best looking','Нет','Нет',108.8,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(4,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra','Нет','Не указано',89.9,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Версия игры 1.6.'),
+(4,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra','Нет','Не указано',55.9,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Версия игры 1.6.'),
+(4,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra','Нет','Не указано',24,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Версия игры 1.6.'),
+(5,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Highest, 16xAF, 4xMSAA + FXAA','Нет','Нет',112.9,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','GTA V Legacy, не Enhanced.'),
+(5,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Highest, 16xAF, 4xMSAA + FXAA','Нет','Нет',77.4,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','GTA V Legacy, не Enhanced.'),
+(5,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'High, Advanced Off, 8xAF, FXAA','Нет','Нет',82.3,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','В 4K снижен пресет, сравнение с FHD/QHD неравнозначно.'),
+(6,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra','Нет','Не указано',73.2,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','PC-порт God of War (2018).'),
+(6,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra','Нет','Не указано',56.5,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','PC-порт God of War (2018).'),
+(6,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra','Нет','Не указано',34.8,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','PC-порт God of War (2018).'),
+(10,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra, AF High, TAA','Не указан','Не указано',71,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(10,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra, AF High, TAA','Не указан','Не указано',49.6,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(10,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra, AF High, TAA','Не указан','Не указано',22.4,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(11,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra, TAA','Нет','Не указано',163,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(11,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra, TAA','Нет','Не указано',115,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(11,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra, TAA','Нет','Не указано',57,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(12,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra + HD Textures, TAA','Нет','Не указано',123.6,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Без DXR.'),
+(12,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra + HD Textures, TAA','Нет','Не указано',82.7,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Без DXR.'),
+(12,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra + HD Textures, TAA','Нет','Не указано',25.1,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Без DXR.'),
+(13,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Ultra, 16xAF','Нет','Не указано',83.5,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Не Enhanced Edition.'),
+(13,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Ultra, 16xAF','Нет','Не указано',64.9,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Не Enhanced Edition.'),
+(13,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Ultra, 16xAF','Нет','Не указано',38.1,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Не Enhanced Edition.'),
+(14,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Badass, DX12','Не указан','Не указано',100,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(14,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Badass, DX12','Не указан','Не указано',65.8,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
+(14,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Badass, DX12','Не указан','Не указано',29.7,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.');
 UPDATE schema_info SET version=1;
 COMMIT;
