@@ -23,7 +23,7 @@ public partial class MainWindow : Window
         try
         {
             var fixedRuntime = Path.Combine(AppContext.BaseDirectory, "webview2");
-            var environment = await CoreWebView2Environment.CreateAsync(Directory.Exists(fixedRuntime) ? fixedRuntime : null, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RepairDesk", "studio", "browser"));
+            var environment = await CoreWebView2Environment.CreateAsync(Directory.Exists(fixedRuntime) ? fixedRuntime : null, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RepairDesk", "studio-v2", "browser"));
             browser = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(243, 244, 240) };
             BrowserHost.Children.Add(browser);
             await browser.EnsureCoreWebView2Async(environment);

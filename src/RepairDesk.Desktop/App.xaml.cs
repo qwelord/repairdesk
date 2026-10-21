@@ -34,7 +34,7 @@ public partial class App : Application
             loading.Show();
             try
             {
-                portableServer = new PortableServer(stateFolder: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RepairDesk", "studio"));
+                portableServer = new PortableServer(stateFolder: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RepairDesk", "studio-v2"));
                 PortableSettings = await portableServer.StartAsync();
             }
             catch (Exception error) { Diagnostics.Write(error); MessageBox.Show(error is RepairDesk.Core.BusinessException ? error.Message : "Не удалось подготовить локальную базу. Подробности сохранены в журнале RepairDesk.", "RepairDesk", MessageBoxButton.OK, MessageBoxImage.Error); loading.Close(); Shutdown(1); return; }
