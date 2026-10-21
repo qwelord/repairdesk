@@ -10,6 +10,10 @@
 | MySqlConnector | 2.4.0 | MIT, https://github.com/mysql-net/MySqlConnector |
 | MariaDB Community Server | 11.8.9 winx64 | GPLv2; COPYING, THIRDPARTY и CREDITS находятся в папке server |
 | Microsoft Visual C++ runtime | Из официального ZIP MariaDB | Условия распространения Microsoft, уведомления в комплекте MariaDB |
+| Microsoft.Web.WebView2 SDK | 1.0.4258.31 | Условия Microsoft, https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4258.31 |
+| Onest | Вариативный TTF из Google Fonts | SIL Open Font License 1.1; текст в wwwroot/assets/OFL.txt; https://github.com/google/fonts/tree/main/ofl/onest |
+
+В комплект включён SDK/loader WebView2, но не установленный на этом ПК Evergreen Runtime. Приложение использует существующий runtime или открывает браузер; официальный Fixed Version Runtime можно добавить отдельным параметром публикации. Условия распространения WebView2 необходимо соблюдать отдельно. Графика оборудования — собственные условные SVG-иллюстрации, не фотографии конкретных моделей.
 
 Официальный дистрибутив и контрольные суммы MariaDB: https://dlm.mariadb.com/browse/mariadb_server/11.8.9/winx64-packages/
 
