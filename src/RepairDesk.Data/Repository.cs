@@ -336,7 +336,8 @@ public sealed partial class Repository(DatabaseSettings settings)
         await using var command = Command(connection, transaction, sql, ("id", part.Id), ("category", part.Category), ("brand", part.Brand.Trim()), ("name", part.Name.Trim()), ("price", part.Price), ("min", part.MinStock), ("socket", part.Socket), ("memory", part.MemoryType), ("watts", part.Wattage), ("capacity", part.Capacity), ("length", part.LengthMm), ("form", part.FormFactor), ("forms", part.SupportedForms), ("gpu", part.MaxGpuMm), ("ram", part.MaxMemoryGb), ("cpu", part.CpuSupport), ("power", part.PowerConnectors), ("source", part.SourceUrl), ("notes", part.Notes));
         try
         {
-            await command.ExecuteNonQueryAsync();
+            if (await command.ExecuteNonQueryAsync() != 1)
+                throw new BusinessException("Комплектующая не найдена.");
         }
         catch (MySqlException error) when (error.Number == 1062) { throw new BusinessException("Комплектующая с таким названием уже есть."); }
         return 0;

@@ -148,7 +148,7 @@ public static class OrderRules
     {
         Required(name, "Укажите имя клиента.", 120);
         var digits = new string(phone.Where(char.IsDigit).ToArray());
-        if (digits.Length is < 10 or > 15)
+        if (digits.Length is < 10 or > 15 || phone.Length > 40 || phone.Any(character => !char.IsDigit(character) && !"+() -".Contains(character)))
             throw new BusinessException("Телефон должен содержать от 10 до 15 цифр.");
         if (email.Length > 180 || email.Length > 0 && !System.Net.Mail.MailAddress.TryCreate(email, out _))
             throw new BusinessException("Проверьте электронную почту.");

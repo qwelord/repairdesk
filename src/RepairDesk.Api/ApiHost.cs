@@ -71,6 +71,7 @@ public static class ApiHost
         app.MapGet("/api/health", () => Results.Ok(new { name = "RepairDesk Studio", version = "2.0", storage = "MySQL / MariaDB" }));
         app.MapPost("/api/auth/login", async (LoginRequest request, Repository repository, HttpContext context) =>
         {
+            if (string.IsNullOrWhiteSpace(request.Login) || request.Login.Length > 80 || request.Password == null || request.Password.Length > 128) return Results.BadRequest(new { title = "Проверьте логин и пароль." });
             Staff user;
             try { user = await repository.LoginAsync(request.Login, request.Password); }
             catch (BusinessException) { return Results.Problem(statusCode: 401, title: "Неверный логин или пароль."); }
@@ -80,6 +81,11 @@ public static class ApiHost
         }).RequireRateLimiting("login");
         var api = app.MapGroup("/api").RequireAuthorization().AddEndpointFilter(async (invocation, next) =>
         {
+            foreach (var argument in invocation.Arguments.Where(argument => argument?.GetType().Namespace is "RepairDesk.Api" or "RepairDesk.Core"))
+            {
+                foreach (var property in argument!.GetType().GetProperties().Where(property => property.CanRead && !property.PropertyType.IsValueType))
+                    if (property.GetValue(argument) == null) return Results.BadRequest(new { title = $"Заполните поле {property.Name}." });
+            }
             var id = invocation.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(id, out var staffId)) return Results.Unauthorized();
             try { await invocation.HttpContext.RequestServices.GetRequiredService<Repository>().ResumeSessionAsync(staffId); }
@@ -104,6 +110,24 @@ public static class ApiHost
         api.MapPost("/parts/{id:int}/movements", async (int id, StockRequest request, Repository repository) => { await repository.AdjustStockAsync(id, request.Quantity, request.Reason); return Results.NoContent(); });
         api.MapGet("/stock-movements", (Repository repository) => repository.StockMovesAsync());
         api.MapGet("/services", (Repository repository) => repository.ServicesAsync());
+        api.MapGet("/exports/orders.csv", async (Repository repository) =>
+        {
+            static string Cell(string text) => "\"" + (text.Length > 0 && "=+-@".Contains(text[0]) ? "'" : "") + text.Replace("\"", "\"\"") + "\"";
+            var lines = new List<string> { "Номер;Клиент;Телефон;Устройство;Статус;Мастер;Срок;Стоимость;Оплачено" };
+            lines.AddRange((await repository.OrdersAsync()).Select(order => string.Join(';', new[] { order.Number, order.ClientName, order.Phone, order.Device, order.Status, order.Technician, order.DueAt.ToString("dd.MM.yyyy"), order.Total.ToString(System.Globalization.CultureInfo.InvariantCulture), order.Paid.ToString(System.Globalization.CultureInfo.InvariantCulture) }.Select(Cell))));
+            var encoding = new System.Text.UTF8Encoding(true);
+            return Results.File(encoding.GetPreamble().Concat(encoding.GetBytes(string.Join("\r\n", lines))).ToArray(), "text/csv; charset=utf-8", $"RepairDesk-{DateTime.Today:yyyy-MM-dd}.csv");
+        });
+        api.MapGet("/exports/backup.sql", async (Repository repository) =>
+        {
+            var path = Path.Combine(Path.GetTempPath(), "repairdesk-" + Guid.NewGuid().ToString("N") + ".sql");
+            try
+            {
+                await repository.BackupAsync(path, Path.Combine(AppContext.BaseDirectory, "database", "schema.sql"));
+                return Results.File(await File.ReadAllBytesAsync(path), "application/sql", $"RepairDesk-backup-{DateTime.Now:yyyyMMdd-HHmmss}.sql");
+            }
+            finally { if (File.Exists(path)) File.Delete(path); }
+        });
         api.MapPost("/services", async (ServiceRequest request, Repository repository) => { var id = await repository.SaveServiceAsync(null, request.Name, request.Price); return Results.Created($"/api/services/{id}", new { id }); });
         api.MapPut("/services/{id:int}", async (int id, ServiceRequest request, Repository repository) => { await repository.SaveServiceAsync(id, request.Name, request.Price); return Results.NoContent(); });
         api.MapDelete("/services/{id:int}", async (int id, Repository repository) => { await repository.DeleteServiceAsync(id); return Results.NoContent(); });
@@ -122,6 +146,7 @@ public static class ApiHost
             return Results.Ok(new { order, lines = await repository.LinesAsync(id), events = await repository.EventsAsync(id), estimates = await repository.EstimatesAsync(id), diagnostics = await repository.DiagnosticsAsync(id), nextStatuses = OrderRules.NextStatuses(order.Status) });
         });
         api.MapPut("/orders/{id:int}", async (int id, OrderUpdate request, Repository repository) => { var order = await Snapshot(repository, id, request.Version); await repository.UpdateOrderAsync(order, request.Diagnosis, request.DueAt, request.TechnicianId, request.Status); return Results.NoContent(); });
+        api.MapDelete("/orders/{id:int}", async (int id, int version, Repository repository) => { var order = await Snapshot(repository, id, version); await repository.UpdateOrderAsync(order, order.Diagnosis, order.DueAt, order.TechnicianId, "Отменен"); return Results.NoContent(); });
         api.MapPost("/orders/{id:int}/notes", async (int id, NoteRequest request, Repository repository) => { await repository.AddNoteAsync(await Snapshot(repository, id, request.Version), request.Message); return Results.NoContent(); });
         api.MapPost("/orders/{id:int}/payments", async (int id, PaymentRequest request, Repository repository) => { await repository.PayAsync(await Snapshot(repository, id, request.Version), request.Amount); return Results.NoContent(); });
         api.MapPost("/orders/{id:int}/lines", async (int id, LineRequest request, Repository repository) =>
