@@ -94,5 +94,5 @@ INSERT INTO benchmarks(game_id,gpu_id,test_cpu,width,height,preset,ray_tracing,u
 (14,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',1920,1080,'Badass, DX12','Не указан','Не указано',100,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
 (14,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',2560,1440,'Badass, DX12','Не указан','Не указано',65.8,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.'),
 (14,9,'AMD Ryzen 9 7950X, 32GB DDR5-6000',3840,2160,'Badass, DX12','Не указан','Не указано',29.7,'Notebookcheck: XFX RX 7600',@rxreview,'2023-08-31','Исторический тест.');
-UPDATE schema_info SET version=1;
+UPDATE schema_info SET version=2;
 COMMIT;

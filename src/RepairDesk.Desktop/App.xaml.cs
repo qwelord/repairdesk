@@ -62,7 +62,8 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs args)
     {
-        if (api != null) api.StopAsync().GetAwaiter().GetResult();
+        if (api != null)
+            api.StopAsync().GetAwaiter().GetResult();
         portableServer?.Stop();
         instance?.Dispose();
         base.OnExit(args);

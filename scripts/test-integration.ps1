@@ -17,7 +17,7 @@ $server = Start-Process -FilePath (Join-Path $MariaDbDirectory 'bin/mariadbd.exe
 $env:MYSQL_PWD = $password
 $env:REPAIRDESK_TEST_PASSWORD = $password
 $env:REPAIRDESK_TEST_PORT = "$Port"
-$settings = @{ Host='127.0.0.1';Port=$Port;Database='repairdesk';User='root';Password=$password }
+$settings = @{ Server='127.0.0.1';Port=$Port;Database='repairdesk';User='root';Password=$password }
 $connectionPath = Join-Path $testRoot 'connection.local.json'
 $settings | ConvertTo-Json | Set-Content -LiteralPath $connectionPath -Encoding utf8
 $env:REPAIRDESK_TEST_CONNECTION = $connectionPath

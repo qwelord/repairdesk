@@ -16,7 +16,7 @@ public sealed partial class Repository(DatabaseSettings settings)
         await connection.OpenAsync();
         await using var command = new MySqlCommand("SELECT version FROM schema_info LIMIT 1", connection);
         var version = Convert.ToInt32(await command.ExecuteScalarAsync());
-        if (version != 1)
+        if (version != 2)
             throw new BusinessException("Версия базы не поддерживается этой сборкой приложения.");
     }
 
@@ -301,7 +301,7 @@ public sealed partial class Repository(DatabaseSettings settings)
         return 0;
     });
 
-    public Task SavePartAsync(Part part, bool create) => TransactionAsync(async (connection, transaction) =>
+    public Task<int> SavePartAsync(Part part, bool create) => TransactionAsync(async (connection, transaction) =>
     {
         if (!Actor.CanManage)
             throw new BusinessException("Каталог редактирует администратор.");
@@ -340,7 +340,7 @@ public sealed partial class Repository(DatabaseSettings settings)
                 throw new BusinessException("Комплектующая не найдена.");
         }
         catch (MySqlException error) when (error.Number == 1062) { throw new BusinessException("Комплектующая с таким названием уже есть."); }
-        return 0;
+        return create ? (int)command.LastInsertedId : part.Id;
     });
 
     public Task UpdatePartAsync(int partId, decimal price, int minStock) => TransactionAsync(async (connection, transaction) =>

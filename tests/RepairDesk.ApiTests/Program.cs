@@ -8,7 +8,8 @@ using RepairDesk.Data;
 var passed = 0;
 void Check(bool condition, string name)
 {
-    if (!condition) throw new Exception("FAIL: " + name);
+    if (!condition)
+        throw new Exception("FAIL: " + name);
     Console.WriteLine("PASS: " + name);
     passed++;
 }
@@ -43,7 +44,8 @@ async Task<JsonElement> Json(string route)
 async Task Success(string method, string route, object? body, string name)
 {
     using var response = await Send(method, route, body);
-    if (!response.IsSuccessStatusCode) throw new Exception(name + ": " + await response.Content.ReadAsStringAsync());
+    if (!response.IsSuccessStatusCode)
+        throw new Exception(name + ": " + await response.Content.ReadAsStringAsync());
     Check(true, name);
 }
 async Task Status(string method, string route, object? body, HttpStatusCode expected, string name)

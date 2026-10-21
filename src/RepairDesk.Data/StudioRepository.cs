@@ -26,26 +26,31 @@ public sealed partial class Repository
     public Task DeleteServiceAsync(int id) => DeleteEntityAsync("services", id, true);
     public Task DeleteBuildAsync(int id) => TransactionAsync(async (connection, transaction) =>
     {
-        if (!Actor.CanReceive) throw new BusinessException("Недостаточно прав.");
+        if (!Actor.CanReceive)
+            throw new BusinessException("Недостаточно прав.");
         await using var lines = Command(connection, transaction, "DELETE FROM build_parts WHERE build_id=@id", ("id", id));
         await lines.ExecuteNonQueryAsync();
         await using var command = Command(connection, transaction, "DELETE FROM builds WHERE id=@id", ("id", id));
-        if (await command.ExecuteNonQueryAsync() != 1) throw new BusinessException("Сборка не найдена.");
+        if (await command.ExecuteNonQueryAsync() != 1)
+            throw new BusinessException("Сборка не найдена.");
         return 0;
     });
 
     private Task DeleteEntityAsync(string table, int id, bool adminOnly) => TransactionAsync(async (connection, transaction) =>
     {
-        if (adminOnly ? !Actor.CanManage : !Actor.CanReceive) throw new BusinessException("Недостаточно прав.");
+        if (adminOnly ? !Actor.CanManage : !Actor.CanReceive)
+            throw new BusinessException("Недостаточно прав.");
         if (table == "parts")
         {
             await using var stock = Command(connection, transaction, "SELECT stock FROM parts WHERE id=@id FOR UPDATE", ("id", id));
-            if (Convert.ToInt32(await stock.ExecuteScalarAsync()) != 0) throw new BusinessException("Перед удалением остаток должен быть нулевым.");
+            if (Convert.ToInt32(await stock.ExecuteScalarAsync()) != 0)
+                throw new BusinessException("Перед удалением остаток должен быть нулевым.");
         }
         await using var command = Command(connection, transaction, $"DELETE FROM {table} WHERE id=@id", ("id", id));
         try
         {
-            if (await command.ExecuteNonQueryAsync() != 1) throw new BusinessException("Запись не найдена.");
+            if (await command.ExecuteNonQueryAsync() != 1)
+                throw new BusinessException("Запись не найдена.");
         }
         catch (MySqlException error) when (error.Number == 1451) { throw new BusinessException("Запись используется в истории. Удаление запрещено, чтобы сохранить документы."); }
         return 0;
@@ -53,11 +58,14 @@ public sealed partial class Repository
 
     public Task<int> SaveServiceAsync(int? id, string name, decimal price) => TransactionAsync(async (connection, transaction) =>
     {
-        if (!Actor.CanManage) throw new BusinessException("Услуги редактирует администратор.");
+        if (!Actor.CanManage)
+            throw new BusinessException("Услуги редактирует администратор.");
         OrderRules.Required(name, "Укажите название услуги.", 160);
-        if (price < 0 || price > 10000000 || decimal.Round(price, 2) != price) throw new BusinessException("Проверьте стоимость.");
+        if (price < 0 || price > 10000000 || decimal.Round(price, 2) != price)
+            throw new BusinessException("Проверьте стоимость.");
         await using var command = Command(connection, transaction, id == null ? "INSERT INTO services(name,price) VALUES(@name,@price)" : "UPDATE services SET name=@name,price=@price WHERE id=@id", ("id", id), ("name", name.Trim()), ("price", price));
-        if (await command.ExecuteNonQueryAsync() != 1) throw new BusinessException("Услуга не найдена.");
+        if (await command.ExecuteNonQueryAsync() != 1)
+            throw new BusinessException("Услуга не найдена.");
         return id ?? (int)command.LastInsertedId;
     });
 
@@ -77,21 +85,27 @@ public sealed partial class Repository
     {
         var order = await LockedOrderAsync(connection, transaction, snapshot);
         OrderRules.CheckOrderAccess(Actor, order);
-        if (!Actor.CanReceive) throw new BusinessException("Смету оформляет приемщик или администратор.");
-        if (note.Length > 2000 || items.Count is < 1 or > 50) throw new BusinessException("Смета: от 1 до 50 позиций; примечание до 2000 символов.");
+        if (!Actor.CanReceive)
+            throw new BusinessException("Смету оформляет приемщик или администратор.");
+        if (note.Length > 2000 || items.Count is < 1 or > 50 || items.Any(item => item is null))
+            throw new BusinessException("Смета: от 1 до 50 позиций; примечание до 2000 символов.");
         await using var create = Command(connection, transaction, "INSERT INTO estimates(order_id,note) VALUES(@order,@note)", ("order", order.Id), ("note", note.Trim()));
         await create.ExecuteNonQueryAsync();
         var id = (int)create.LastInsertedId;
         foreach (var item in items.OrderBy(item => item.PartId))
         {
-            if (item.Quantity is < 1 or > 100 || item.PartId.HasValue == item.ServiceId.HasValue) throw new BusinessException("Выберите деталь или услугу и количество от 1 до 100.");
+            if (item.Quantity is < 1 or > 100 || item.PartId.HasValue == item.ServiceId.HasValue)
+                throw new BusinessException("Выберите деталь или услугу и количество от 1 до 100.");
             var sql = item.PartId.HasValue ? "SELECT name,price FROM parts WHERE id=@id FOR UPDATE" : "SELECT name,price FROM services WHERE id=@id FOR UPDATE";
-            string name; decimal price;
+            string name;
+            decimal price;
             await using (var read = Command(connection, transaction, sql, ("id", item.PartId ?? item.ServiceId)))
             await using (var reader = await read.ExecuteReaderAsync())
             {
-                if (!await reader.ReadAsync()) throw new BusinessException("Позиция каталога не найдена.");
-                name = reader.GetString(0); price = reader.GetDecimal(1);
+                if (!await reader.ReadAsync())
+                    throw new BusinessException("Позиция каталога не найдена.");
+                name = reader.GetString(0);
+                price = reader.GetDecimal(1);
             }
             await using var line = Command(connection, transaction, "INSERT INTO estimate_lines(estimate_id,part_id,name,quantity,unit_price) VALUES(@id,@part,@name,@qty,@price)", ("id", id), ("part", item.PartId), ("name", name), ("qty", item.Quantity), ("price", price));
             await line.ExecuteNonQueryAsync();
@@ -105,22 +119,29 @@ public sealed partial class Repository
     {
         var order = await LockedOrderAsync(connection, transaction, snapshot);
         OrderRules.CheckOrderAccess(Actor, order);
-        if (!Actor.CanReceive) throw new BusinessException("Согласование оформляет приемщик или администратор.");
-        if (decision is not ("Согласована" or "Отклонена" or "Применена")) throw new BusinessException("Неверное действие со сметой.");
+        if (!Actor.CanReceive)
+            throw new BusinessException("Согласование оформляет приемщик или администратор.");
+        if (decision is not ("Согласована" or "Отклонена" or "Применена"))
+            throw new BusinessException("Неверное действие со сметой.");
         await using var read = Command(connection, transaction, "SELECT status FROM estimates WHERE id=@id AND order_id=@order FOR UPDATE", ("id", estimateId), ("order", order.Id));
         var status = Convert.ToString(await read.ExecuteScalarAsync());
-        if (decision == "Применена" ? status != "Согласована" : status != "Черновик") throw new BusinessException("Статус сметы уже изменён. Обновите заказ.");
-        if (decision != "Применена") OrderRules.Required(approvedBy, "Укажите, кто подтвердил решение клиента.", 120);
+        if (decision == "Применена" ? status != "Согласована" : status != "Черновик")
+            throw new BusinessException("Статус сметы уже изменён. Обновите заказ.");
+        if (decision != "Применена")
+            OrderRules.Required(approvedBy, "Укажите, кто подтвердил решение клиента.", 120);
         if (decision == "Применена")
         {
-            if (order.Status == "Готов") throw new BusinessException("Сначала верните заказ в ремонт.");
+            if (order.Status == "Готов")
+                throw new BusinessException("Сначала верните заказ в ремонт.");
             var lines = new List<EstimateLine>();
             await using (var command = Command(connection, transaction, "SELECT id,part_id,name,quantity,unit_price FROM estimate_lines WHERE estimate_id=@id ORDER BY part_id,id", ("id", estimateId)))
             await using (var reader = await command.ExecuteReaderAsync())
-                while (await reader.ReadAsync()) lines.Add(new(reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetInt32(1), reader.GetString(2), reader.GetInt32(3), reader.GetDecimal(4)));
+                while (await reader.ReadAsync())
+                    lines.Add(new(reader.GetInt32(0), reader.IsDBNull(1) ? null : reader.GetInt32(1), reader.GetString(2), reader.GetInt32(3), reader.GetDecimal(4)));
             foreach (var line in lines)
             {
-                if (line.PartId is { } partId) await MoveStockAsync(connection, transaction, partId, -line.Quantity, $"Смета №{estimateId}: {order.Number}", order.Id);
+                if (line.PartId is { } partId)
+                    await MoveStockAsync(connection, transaction, partId, -line.Quantity, $"Смета №{estimateId}: {order.Number}", order.Id);
                 await using var insert = Command(connection, transaction, "INSERT INTO order_lines(order_id,kind,part_id,name,quantity,unit_price) VALUES(@order,@kind,@part,@name,@qty,@price)", ("order", order.Id), ("kind", line.PartId.HasValue ? "Запчасть" : "Работа"), ("part", line.PartId), ("name", line.Name), ("qty", line.Quantity), ("price", line.UnitPrice));
                 await insert.ExecuteNonQueryAsync();
             }
@@ -142,7 +163,8 @@ public sealed partial class Repository
     {
         var order = await LockedOrderAsync(connection, transaction, snapshot);
         OrderRules.CheckOrderAccess(Actor, order);
-        if (!DiagnosticTests.Items.ContainsKey(key) || !new[] { "Не проверено", "Норма", "Проблема", "Не применимо" }.Contains(result) || note.Length > 1000) throw new BusinessException("Проверьте результат диагностики и примечание.");
+        if (!DiagnosticTests.Items.ContainsKey(key) || !new[] { "Не проверено", "Норма", "Проблема", "Не применимо" }.Contains(result) || note.Length > 1000)
+            throw new BusinessException("Проверьте результат диагностики и примечание.");
         await using var command = Command(connection, transaction, "INSERT INTO diagnostics(order_id,test_key,result,note,staff_id) VALUES(@order,@key,@result,@note,@staff) ON DUPLICATE KEY UPDATE result=@result,note=@note,staff_id=@staff", ("order", order.Id), ("key", key), ("result", result), ("note", note.Trim()), ("staff", Actor.Id));
         await command.ExecuteNonQueryAsync();
         await TouchAsync(connection, transaction, order.Id);

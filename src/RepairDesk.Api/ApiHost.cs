@@ -15,10 +15,12 @@ public static class ApiHost
     public static WebApplication Create(DatabaseSettings settings, string webRoot, string url = "http://127.0.0.1:0")
     {
         var address = new Uri(url);
-        if (address.Scheme != "http" || address.Host != "127.0.0.1") throw new ArgumentException("API разрешено слушать только 127.0.0.1.", nameof(url));
+        if (address.Scheme != "http" || address.Host != "127.0.0.1")
+            throw new ArgumentException("API разрешено слушать только 127.0.0.1.", nameof(url));
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { WebRootPath = webRoot, ContentRootPath = AppContext.BaseDirectory, Args = [] });
         builder.WebHost.UseUrls(url).ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 128 * 1024);
         builder.Services.AddSingleton(settings);
+        builder.Logging.SetMinimumLevel(LogLevel.Warning);
         builder.Services.AddScoped<Repository>();
         builder.Services.Configure<JsonOptions>(options => options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
         builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
@@ -36,6 +38,11 @@ public static class ApiHost
         var app = builder.Build();
         app.Use(async (context, next) =>
         {
+            if (context.Request.Host.Host != "127.0.0.1")
+            {
+                context.Response.StatusCode = 400;
+                return;
+            }
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
             context.Response.Headers["Referrer-Policy"] = "no-referrer";
             context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
@@ -48,12 +55,18 @@ public static class ApiHost
                     if (context.Request.Headers["X-RepairDesk-Client"] != "studio" || origin.Length > 0 && origin != $"{context.Request.Scheme}://{context.Request.Host}")
                     {
                         context.Response.StatusCode = 403;
-                        await context.Response.WriteAsJsonAsync(new { title = "Источник запроса не разрешён." });
+                        await context.Response.WriteAsJsonAsync(new
+                        {
+                            title = "Источник запроса не разрешён."
+                        });
                         return;
                     }
                 }
             }
-            try { await next(context); }
+            try
+            {
+                await next(context);
+            }
             catch (BusinessException error) { await Problem(context, 409, error.Message); }
             catch (BadHttpRequestException) { await Problem(context, 400, "Проверьте формат и обязательные поля запроса."); }
             catch (MySqlException error) when (error.Number is 1062 or 1451 or 1452) { await Problem(context, 409, "Запись уже существует или используется в связанных документах."); }
@@ -71,9 +84,16 @@ public static class ApiHost
         app.MapGet("/api/health", () => Results.Ok(new { name = "RepairDesk Studio", version = "2.0", storage = "MySQL / MariaDB" }));
         app.MapPost("/api/auth/login", async (LoginRequest request, Repository repository, HttpContext context) =>
         {
-            if (string.IsNullOrWhiteSpace(request.Login) || request.Login.Length > 80 || request.Password == null || request.Password.Length > 128) return Results.BadRequest(new { title = "Проверьте логин и пароль." });
+            if (string.IsNullOrWhiteSpace(request.Login) || request.Login.Length > 80 || request.Password == null || request.Password.Length > 128)
+                return Results.BadRequest(new
+                {
+                    title = "Проверьте логин и пароль."
+                });
             Staff user;
-            try { user = await repository.LoginAsync(request.Login, request.Password); }
+            try
+            {
+                user = await repository.LoginAsync(request.Login, request.Password);
+            }
             catch (BusinessException) { return Results.Problem(statusCode: 401, title: "Неверный логин или пароль."); }
             var identity = new ClaimsIdentity([new(ClaimTypes.NameIdentifier, user.Id.ToString()), new(ClaimTypes.Name, user.Name), new(ClaimTypes.Role, user.Role)], CookieAuthenticationDefaults.AuthenticationScheme);
             await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
@@ -84,11 +104,19 @@ public static class ApiHost
             foreach (var argument in invocation.Arguments.Where(argument => argument?.GetType().Namespace is "RepairDesk.Api" or "RepairDesk.Core"))
             {
                 foreach (var property in argument!.GetType().GetProperties().Where(property => property.CanRead && !property.PropertyType.IsValueType))
-                    if (property.GetValue(argument) == null) return Results.BadRequest(new { title = $"Заполните поле {property.Name}." });
+                    if (property.GetValue(argument) == null)
+                        return Results.BadRequest(new
+                        {
+                            title = $"Заполните поле {property.Name}."
+                        });
             }
             var id = invocation.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(id, out var staffId)) return Results.Unauthorized();
-            try { await invocation.HttpContext.RequestServices.GetRequiredService<Repository>().ResumeSessionAsync(staffId); }
+            if (!int.TryParse(id, out var staffId))
+                return Results.Unauthorized();
+            try
+            {
+                await invocation.HttpContext.RequestServices.GetRequiredService<Repository>().ResumeSessionAsync(staffId);
+            }
             catch (BusinessException) { await invocation.HttpContext.SignOutAsync(); return Results.Unauthorized(); }
             return await next(invocation);
         });
@@ -104,12 +132,14 @@ public static class ApiHost
         api.MapPut("/clients/{id:int}", async (int id, ClientRequest request, Repository repository) => { await repository.SaveClientAsync(id, request.Name, request.Phone, request.Email, request.Notes); return Results.NoContent(); });
         api.MapDelete("/clients/{id:int}", async (int id, Repository repository) => { await repository.DeleteClientAsync(id); return Results.NoContent(); });
         api.MapGet("/parts", (Repository repository) => repository.PartsAsync());
-        api.MapPost("/parts", async (Part request, Repository repository) => { await repository.SavePartAsync(request, true); return Results.StatusCode(201); });
+        api.MapGet("/parts/{id:int}", async (int id, Repository repository) => (await repository.PartsAsync()).FirstOrDefault(part => part.Id == id) is { } part ? Results.Ok(part) : Results.NotFound());
+        api.MapPost("/parts", async (Part request, Repository repository) => { var id = await repository.SavePartAsync(request, true); return Results.Created($"/api/parts/{id}", new { id }); });
         api.MapPut("/parts/{id:int}", async (int id, Part request, Repository repository) => { await repository.SavePartAsync(request with { Id = id }, false); return Results.NoContent(); });
         api.MapDelete("/parts/{id:int}", async (int id, Repository repository) => { await repository.DeletePartAsync(id); return Results.NoContent(); });
         api.MapPost("/parts/{id:int}/movements", async (int id, StockRequest request, Repository repository) => { await repository.AdjustStockAsync(id, request.Quantity, request.Reason); return Results.NoContent(); });
         api.MapGet("/stock-movements", (Repository repository) => repository.StockMovesAsync());
         api.MapGet("/services", (Repository repository) => repository.ServicesAsync());
+        api.MapGet("/services/{id:int}", async (int id, Repository repository) => (await repository.ServicesAsync()).FirstOrDefault(service => service.Id == id) is { } service ? Results.Ok(service) : Results.NotFound());
         api.MapGet("/exports/orders.csv", async (Repository repository) =>
         {
             static string Cell(string text) => "\"" + (text.Length > 0 && "=+-@".Contains(text[0]) ? "'" : "") + text.Replace("\"", "\"\"") + "\"";
@@ -143,7 +173,15 @@ public static class ApiHost
         api.MapGet("/orders/{id:int}", async (int id, Repository repository) =>
         {
             var order = await repository.OrderAsync(id);
-            return Results.Ok(new { order, lines = await repository.LinesAsync(id), events = await repository.EventsAsync(id), estimates = await repository.EstimatesAsync(id), diagnostics = await repository.DiagnosticsAsync(id), nextStatuses = OrderRules.NextStatuses(order.Status) });
+            return Results.Ok(new
+            {
+                order,
+                lines = await repository.LinesAsync(id),
+                events = await repository.EventsAsync(id),
+                estimates = await repository.EstimatesAsync(id),
+                diagnostics = await repository.DiagnosticsAsync(id),
+                nextStatuses = OrderRules.NextStatuses(order.Status)
+            });
         });
         api.MapPut("/orders/{id:int}", async (int id, OrderUpdate request, Repository repository) => { var order = await Snapshot(repository, id, request.Version); await repository.UpdateOrderAsync(order, request.Diagnosis, request.DueAt, request.TechnicianId, request.Status); return Results.NoContent(); });
         api.MapDelete("/orders/{id:int}", async (int id, int version, Repository repository) => { var order = await Snapshot(repository, id, version); await repository.UpdateOrderAsync(order, order.Diagnosis, order.DueAt, order.TechnicianId, "Отменен"); return Results.NoContent(); });
@@ -151,7 +189,8 @@ public static class ApiHost
         api.MapPost("/orders/{id:int}/payments", async (int id, PaymentRequest request, Repository repository) => { await repository.PayAsync(await Snapshot(repository, id, request.Version), request.Amount); return Results.NoContent(); });
         api.MapPost("/orders/{id:int}/lines", async (int id, LineRequest request, Repository repository) =>
         {
-            if (request.PartId.HasValue == request.ServiceId.HasValue) throw new BusinessException("Выберите одну деталь или услугу.");
+            if (request.PartId.HasValue == request.ServiceId.HasValue)
+                throw new BusinessException("Выберите одну деталь или услугу.");
             var service = request.ServiceId is { } serviceId ? (await repository.ServicesAsync()).FirstOrDefault(item => item.Id == serviceId) : null;
             await repository.AddLineAsync(await Snapshot(repository, id, request.Version), request.PartId, service, request.Quantity);
             return Results.NoContent();
@@ -160,7 +199,8 @@ public static class ApiHost
         {
             var order = await Snapshot(repository, id, version);
             var line = (await repository.LinesAsync(id)).FirstOrDefault(item => item.Id == lineId) ?? throw new BusinessException("Строка не найдена.");
-            await repository.RemoveLineAsync(order, line); return Results.NoContent();
+            await repository.RemoveLineAsync(order, line);
+            return Results.NoContent();
         });
         api.MapPost("/orders/{id:int}/estimates", async (int id, EstimateRequest request, Repository repository) => { var estimateId = await repository.CreateEstimateAsync(await Snapshot(repository, id, request.Version), request.Note, request.Items); return Results.Created($"/api/orders/{id}/estimates/{estimateId}", new { id = estimateId }); });
         api.MapGet("/orders/{id:int}/estimates/{estimateId:int}", (int id, int estimateId, Repository repository) => repository.EstimateLinesAsync(id, estimateId));
@@ -171,7 +211,8 @@ public static class ApiHost
     private static async Task<RepairOrder> Snapshot(Repository repository, int id, int version)
     {
         var order = await repository.OrderAsync(id);
-        if (order.Version != version) throw new BusinessException("Заказ изменён. Обновите его, чтобы не потерять чужие изменения.");
+        if (order.Version != version)
+            throw new BusinessException("Заказ изменён. Обновите его, чтобы не потерять чужие изменения.");
         return order;
     }
 
@@ -190,8 +231,15 @@ public static class ApiHost
 
     private static async Task Problem(HttpContext context, int status, string title)
     {
-        if (context.Response.HasStarted) return;
+        if (context.Response.HasStarted)
+            return;
         context.Response.StatusCode = status;
-        await context.Response.WriteAsJsonAsync(new { type = "about:blank", title, status, traceId = context.TraceIdentifier });
+        await context.Response.WriteAsJsonAsync(new
+        {
+            type = "about:blank",
+            title,
+            status,
+            traceId = context.TraceIdentifier
+        });
     }
 }
