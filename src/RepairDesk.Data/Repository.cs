@@ -4,7 +4,7 @@ using RepairDesk.Core;
 
 namespace RepairDesk.Data;
 
-public sealed class Repository(DatabaseSettings settings)
+public sealed partial class Repository(DatabaseSettings settings)
 {
     public DatabaseSettings Settings { get; } = settings;
     private Staff? session;
@@ -60,7 +60,7 @@ public sealed class Repository(DatabaseSettings settings)
         await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead);
         var output = new System.Text.StringBuilder(await File.ReadAllTextAsync(schemaPath));
         output.AppendLine("\nDELETE FROM schema_info;");
-        foreach (var table in new[] { "schema_info", "staff", "clients", "parts", "services", "games", "orders", "order_lines", "payments", "order_events", "stock_moves", "benchmarks", "builds", "build_parts" })
+        foreach (var table in new[] { "schema_info", "staff", "clients", "parts", "services", "games", "orders", "order_lines", "payments", "order_events", "stock_moves", "benchmarks", "builds", "build_parts", "estimates", "estimate_lines", "diagnostics" })
         {
             await using var command = Command(connection, transaction, $"SELECT * FROM `{table}`");
             await using var reader = await command.ExecuteReaderAsync();
