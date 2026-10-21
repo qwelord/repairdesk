@@ -58,6 +58,23 @@ using (var page = await http.GetAsync("/")) Check(page.IsSuccessStatusCode && pa
 await Status("POST", "/auth/login", new { login = "admin", password = "wrong" }, HttpStatusCode.Unauthorized, "Invalid password rejected");
 await Success("POST", "/auth/login", new { login = "admin", password = "RepairDesk2026!" }, "Admin cookie login");
 Check((await Json("/auth/me")).GetProperty("login").GetString() == "admin", "Session identity returned");
+var expanded = (await Json("/parts")).EnumerateArray().ToArray();
+Check(expanded.Length == 84 && expanded.GroupBy(part => part.GetProperty("category").GetString()).All(group => group.Count() == 12), "Catalog contains twelve parts in each of seven categories");
+await Provisioning.EnsureCatalogAsync(settings, Path.Combine(AppContext.BaseDirectory, "database"));
+Check((await Json("/parts")).GetArrayLength() == 84, "Catalog import is idempotent");
+using (var connection = new MySqlConnector.MySqlConnection(settings.ConnectionString))
+{
+    await connection.OpenAsync();
+    using var transaction = await connection.BeginTransactionAsync();
+    using var command = new MySqlConnector.MySqlCommand("UPDATE parts SET price=12345,stock=2,notes='Preserved user edit' WHERE id=100", connection, transaction);
+    await command.ExecuteNonQueryAsync();
+    var catalogSql = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "catalog.sql"));
+    command.CommandText = catalogSql.Replace("START TRANSACTION;", "").Replace("COMMIT;", "");
+    await command.ExecuteNonQueryAsync();
+    command.CommandText = "SELECT COUNT(*) FROM parts WHERE id=100 AND price=12345 AND stock=2 AND notes='Preserved user edit'";
+    Check(Convert.ToInt32(await command.ExecuteScalarAsync()) == 1, "Catalog import preserves edited prices stock and notes");
+    await transaction.RollbackAsync();
+}
 http.DefaultRequestHeaders.Remove("X-RepairDesk-Client");
 await Status("POST", "/clients", new { name = "Blocked" }, HttpStatusCode.Forbidden, "CSRF custom header required");
 http.DefaultRequestHeaders.Add("X-RepairDesk-Client", "studio");
