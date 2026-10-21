@@ -45,7 +45,7 @@ public static class BuildEngine
         var parts = all.Where(part => !request.InStockOnly || part.Stock > 0).ToList();
         var labor = (await repository.ServicesAsync()).FirstOrDefault(service => service.Name == "Сборка и проверка ПК")?.Price ?? 0;
         var benchmarks = await BenchmarksAsync(repository, all);
-        var gpuIds = parts.Where(part => part.Category == "Видеокарта").Select(part => part.Id).ToHashSet();
+        var gpuIds = parts.Where(part => part.Category == "Видеокарта" && benchmarks.Any(sample => sample.GpuId == part.Id && sample.Width == request.Width)).Select(part => part.Id).ToHashSet();
         var commonGames = benchmarks.Where(sample => gpuIds.Contains(sample.GpuId) && sample.Width == request.Width).GroupBy(sample => sample.GameId).Where(group => group.Select(sample => sample.GpuId).Distinct().Count() == gpuIds.Count).Select(group => group.Key).ToHashSet();
         IEnumerable<Part> Category(string category) => parts.Where(part => part.Category == category).OrderBy(part => part.Price);
         var options = new List<(BuildSelection Build, decimal Score)>();

@@ -71,6 +71,27 @@ Check(created.StatusCode == HttpStatusCode.Created && created.Headers.Location !
 var clientId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 await Success("PUT", "/clients/" + clientId, new { name = "API O'Connor", phone = "79001112233", email = "", notes = "Edited" }, "Client update");
 Check((await Json("/clients/" + clientId)).GetProperty("notes").GetString() == "Edited", "Client read persisted update");
+using (var disposable = await Send("POST", "/clients", new
+{
+    name = "Disposable QA",
+    phone = "79001112299",
+    email = "",
+    notes = ""
+}))
+{
+    disposable.EnsureSuccessStatusCode();
+    var disposableId = (await disposable.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    await Success("DELETE", "/clients/" + disposableId, null, "Unused client deleted through REST");
+    await Status("GET", "/clients/" + disposableId, null, HttpStatusCode.NotFound, "Deleted client returns 404");
+}
+using (var service = await Send("POST", "/services", new ServiceRequest("Disposable API labor", 100)))
+{
+    service.EnsureSuccessStatusCode();
+    var serviceId = (await service.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    await Success("PUT", "/services/" + serviceId, new ServiceRequest("Updated API labor", 200), "Service updated through REST");
+    Check((await Json("/services/" + serviceId)).GetProperty("price").GetDecimal() == 200, "Service price persisted");
+    await Success("DELETE", "/services/" + serviceId, null, "Unused service deleted through REST");
+}
 using var createdOrder = await Send("POST", "/orders", new NewOrder(clientId, "ПК", "API workstation", "API-01", "Fault", "Case", DateTime.Today.AddDays(3), 3));
 createdOrder.EnsureSuccessStatusCode();
 var orderId = (await createdOrder.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
@@ -97,6 +118,32 @@ await Status("PUT", estimateRoute, new { version = await Version(), status = "П
 detail = await Json(OrderRoute());
 Check(detail.GetProperty("lines").GetArrayLength() == 2, "Estimate creates exactly two order lines");
 Check((await Json("/parts")).EnumerateArray().Single(part => part.GetProperty("id").GetInt32() == 12).GetProperty("stock").GetInt32() == stockBefore - 1, "Applied estimate decrements stock once");
+using (var excessive = await Send("POST", OrderRoute() + "/estimates", new
+{
+    version = await Version(),
+    note = "Insufficient stock test",
+    items = new[] { new EstimateInput(1, null, 1), new EstimateInput(12, null, 100) }
+}))
+{
+    excessive.EnsureSuccessStatusCode();
+    var excessiveId = (await excessive.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    var excessiveRoute = OrderRoute() + "/estimates/" + excessiveId;
+    await Success("PUT", excessiveRoute, new
+    {
+        version = await Version(),
+        status = "Согласована",
+        approvedBy = "QA"
+    }, "Estimate approval does not require stock reservation");
+    var beforeFailedApply = (await Json("/parts")).GetRawText();
+    var beforeFailedVersion = await Version();
+    await Status("PUT", excessiveRoute, new
+    {
+        version = beforeFailedVersion,
+        status = "Применена",
+        approvedBy = ""
+    }, HttpStatusCode.Conflict, "Insufficient estimate stock rejects entire application");
+    Check((await Json("/parts")).GetRawText() == beforeFailedApply && await Version() == beforeFailedVersion, "Failed estimate preserves all stock and order version");
+}
 await Status("POST", OrderRoute() + "/payments", new { version = await Version(), amount = 9999999 }, HttpStatusCode.Conflict, "Overpayment rejected");
 using var evaluation = await Send("POST", "/builds/evaluate", new BuildRequest([1, 4, 7, 10, 14, 16, 12]));
 evaluation.EnsureSuccessStatusCode();

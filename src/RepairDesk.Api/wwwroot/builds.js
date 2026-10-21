@@ -92,11 +92,22 @@ async function evaluate() {
         )
         .join("");
     $("#performance").innerHTML =
-        performance(evaluation.performance) +
-        `<p class="help">${esc(evaluation.notice)}</p>`;
+        (evaluation.build.gpu
+            ? performance(evaluation.performance)
+            : empty(
+                  "Добавьте видеокарту.",
+                  "После выбора GPU здесь появятся игровые ориентиры и источники.",
+              )) + `<p class="help">${esc(evaluation.notice)}</p>`;
 }
 function performance(items) {
-    return `<div class="fps-table"><div class="table-wrap"><table><thead><tr><th>Игра</th><th>Средний FPS / ориентир</th><th>Настройки теста</th><th>Данные</th></tr></thead><tbody>${items.map((item, index) => `<tr><td><div class="primary-text">${esc(item.game)}</div><div class="fps-kind">${esc(item.kind)}</div></td><td>${item.fps ? `<span class="fps-value">${item.kind === "Замер из источника" ? item.fps : item.lower + "–" + item.upper}</span><small class="muted"> fps</small><svg width="120" height="6" viewBox="0 0 120 6" aria-hidden="true"><rect width="120" height="4" rx="2" fill="#e7ebdf"/><rect width="${Math.min(120, (Number(item.fps) / 240) * 120)}" height="4" rx="2" fill="#91a27c"/></svg>` : '<span class="muted">Не публикуем без основания</span>'}</td><td><div class="secondary-text">${esc(item.preset) || "—"}</div></td><td><button class="source-button" data-action="fps-source" data-index="${index}">Методика и источник ↗</button></td></tr>`).join("")}</tbody></table></div></div>`;
+    const available = items.filter((item) => item.fps != null);
+    const unavailable = items.filter((item) => item.fps == null);
+    if (!available.length)
+        return empty(
+            "Для этого GPU пока нет проверенного игрового профиля.",
+            "Добавьте опубликованные тесты в каталог данных. Произвольные FPS не подставляются.",
+        );
+    return `<div class="fps-table"><div class="table-wrap"><table><thead><tr><th>Игра</th><th>Средний FPS / ориентир</th><th>Настройки теста</th><th>Данные</th></tr></thead><tbody>${available.map((item) => `<tr><td><div class="primary-text">${esc(item.game)}</div><div class="fps-kind">${esc(item.kind)}</div></td><td><span class="fps-value">${item.kind === "Замер из источника" ? item.fps : item.lower + "–" + item.upper}</span><small class="muted"> fps</small><svg width="120" height="6" viewBox="0 0 120 6" aria-hidden="true"><rect width="120" height="4" rx="2" fill="#e7ebdf"/><rect width="${Math.min(120, (Number(item.fps) / 240) * 120)}" height="4" rx="2" fill="#91a27c"/></svg></td><td><div class="secondary-text">${esc(item.preset)}</div></td><td><button class="source-button" data-action="fps-source" data-index="${items.indexOf(item)}">Методика и источник ↗</button></td></tr>`).join("")}</tbody></table></div></div>${unavailable.length ? `<p class="help">Без подтверждённого ориентира для этого GPU и разрешения: ${unavailable.map((item) => esc(item.game)).join(", ")}. Числа не генерируются без основания.</p>` : ""}`;
 }
 actions.resolution = async (target) => {
     state.width = Number(target.dataset.width);
