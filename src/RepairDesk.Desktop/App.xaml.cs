@@ -54,19 +54,34 @@ public partial class App : Application
             Shutdown(1);
             return;
         }
-        ShutdownMode = ShutdownMode.OnMainWindowClose;
         var window = new MainWindow(new Uri(api.Urls.Single()));
+        window.Closed += OnWindowClosed;
         MainWindow = window;
         window.Show();
     }
 
     protected override void OnExit(ExitEventArgs args)
     {
-        if (api != null)
-            api.StopAsync().GetAwaiter().GetResult();
         portableServer?.Stop();
         instance?.Dispose();
         base.OnExit(args);
+    }
+
+    private async void OnWindowClosed(object? sender, EventArgs args)
+    {
+        try
+        {
+            if (api != null)
+            {
+                await api.StopAsync();
+                await api.DisposeAsync();
+                api = null;
+            }
+            await Task.Run(() => portableServer?.Stop());
+            portableServer = null;
+        }
+        catch (Exception error) { Diagnostics.Write(error); }
+        finally { Shutdown(); }
     }
 
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs args)
